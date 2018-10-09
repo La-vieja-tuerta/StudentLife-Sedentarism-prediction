@@ -93,8 +93,6 @@ sdata['isSedentary'] = sdata['activityId'] == 0
 
 # sedentary mean
 s = pd.DataFrame(sdata.groupby(['userId', 'time'])['isSedentary'].mean())
-aux = s.head(41396) #numero magico
-aux['slevel'] = pd.qcut(aux['isSedentary'], 3, labels=['less sedentary', 'sedentary', 'very sedentary'])
 
 # hourofday
 s['hourofday'] = s.index.get_level_values('time').hour

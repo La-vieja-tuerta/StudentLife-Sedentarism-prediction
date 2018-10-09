@@ -13,7 +13,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report
-
+from sklearn.linear_model import LogisticRegression
 X = pd.read_pickle('Xsamples.pkl')
 y = pd.read_pickle('ysamples.pkl')
 
@@ -24,13 +24,28 @@ X.loc[X['beforeNextDeadline'] > 0, 'beforeNextDeadline'] = np.log(X.loc[X['befor
 X.loc[X['afterLastDeadline'] > 0, 'afterLastDeadline'] = np.log(X.loc[X['afterLastDeadline'] > 0, 'afterLastDeadline'])
 y = to_categorical(y)
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 #print(X_train.shape, X_valid.shape, y_train.shape, y_valid.shape)
 numeric_cols = ['cantConversation', 'beforeNextDeadline', 'afterLastDeadline', 'wifiChanges', 'hourofday']
 
 ss = StandardScaler()
 X_train.loc[:, numeric_cols] = ss.fit_transform(X_train[numeric_cols])
 X_test[numeric_cols] = ss.transform(X_test[numeric_cols])
+
+'''
+columns = X.columns
+sm = SMOTE(random_state=12, ratio='all')
+X_train, y_train = sm.fit_sample(X_train, y_train)
+X_train = pd.DataFrame(X_train, columns=columns)
+y_train = pd.Series(y_train)
+y_train = to_categorical(y_train)
+y_test = to_categorical(y_test)
+'''
+clf = LogisticRegression(random_state=0, solver='lbfgs',
+                         multi_class='multinomial')
+clf.fit(X_train, y_train)
+print(clf.score(X_test, y_test))
+print(classification_report(y_test, clf.predict(X_test)))
 
 size = X.shape[1]
 # Initialize the constructor

@@ -209,3 +209,31 @@ model.compile(loss='categorical_crossentropy',
    micro avg       0.57      0.57      0.57     14667
    macro avg       0.55      0.56      0.56     14667
 weighted avg       0.56      0.57      0.57     14667
+
+# using logistic regression without SMOTE
+
+clf = LogisticRegression(random_state=0, solver='lbfgs',
+                         multi_class='multinomial')
+clf.fit(X_train, y_train)
+print(clf.score(X_test, y_test))
+print(classification_report(y_test, clf.predict(X_test)))
+0.6525825367499397
+             precision    recall  f1-score   support
+          0       0.57      0.53      0.55      3223
+          1       0.34      0.04      0.08      2244
+          2       0.69      0.90      0.78      6982
+avg / total       0.60      0.65      0.60     12449
+
+# using logistic regression with SMOTE
+
+clf = LogisticRegression(random_state=0, solver='lbfgs',
+                         multi_class='multinomial')
+clf.fit(X_train, y_train)
+print(clf.score(X_test, y_test))
+print(classification_report(y_test, clf.predict(X_test)))
+0.6075990039360591
+             precision    recall  f1-score   support
+          0       0.55      0.55      0.55      3223
+          1       0.28      0.41      0.33      2244
+          2       0.81      0.70      0.75      6982
+avg / total       0.65      0.61      0.62     12449
