@@ -17,7 +17,8 @@ s.loc[s['isSedentary'] < 0.9052, 'slevel'] = 'less sedentary'
 
 s = s.drop(columns=['isSedentary', 'audiomajor'])
 #set type of numeric and categorical columns
-numeric_cols = ['cantConversation', 'beforeNextDeadline', 'afterLastDeadline', 'hourofday', 'wifiChanges']
+numeric_cols = ['cantConversation', 'beforeNextDeadline', 'afterLastDeadline', 'hourofday', 'wifiChanges',
+                'stationaryCount', 'walkingCount', 'runningCount']
 for col in numeric_cols:
     s[col] = s[col].astype('float')
 

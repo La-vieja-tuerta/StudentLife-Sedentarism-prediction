@@ -111,6 +111,17 @@ s.loc[s.index.get_level_values('time').dayofweek == 6, 'dayofweek'] = 'sunday'
 sdata.loc[sdata['activityId'] == 3, 'activityId'] = 1
 s['activitymajor'] = sdata.groupby(['userId', 'time'])['activityId'].apply(Most_Common)
 
+
+#logs per activity
+s.loc[:, 'stationaryCount'] = sdata.loc[sdata['activityId'] == 0, ].groupby(['userId', 'time'])['isSedentary'].count()
+s.loc[s['stationaryCount'].isna(), 'stationaryCount'] = 0
+
+s.loc[:, 'walkingCount'] = sdata.loc[sdata['activityId'] == 1, ].groupby(['userId', 'time'])['isSedentary'].count()
+s.loc[s['walkingCount'].isna(), 'walkingCount'] = 0
+
+s.loc[:, 'runningCount'] = sdata.loc[sdata['activityId'] == 2, ].groupby(['userId', 'time'])['isSedentary'].count()
+s.loc[s['runningCount'].isna(), 'runningCount'] = 0
+
 # plot
 '''
 s['isSedentary'] = s['isSedentary'].astype('float')
@@ -131,6 +142,25 @@ adata['time'] = adata['time'].dt.floor('h')
 # s[s['audiomajor'].isna()].groupby('userId')['audiomajor'].count()
 s['audiomajor'] = np.NaN
 s['audiomajor'] = adata.groupby(['userId', 'time'])['audioId'].apply(Most_Common).astype('int')
+
+
+#0	Silence
+#1	Voice
+#2	Noise
+#3	Unknow
+
+s.loc[:, 'silenceCount'] = adata.loc[adata['audioId'] == 0, ].groupby(['userId', 'time'])['audioId'].count()
+s.loc[s['silenceCount'].isna(), 'silenceCount'] = 0
+
+s.loc[:, 'voiceCount'] = adata.loc[adata['audioId'] == 1, ].groupby(['userId', 'time'])['audioId'].count()
+s.loc[s['voiceCount'].isna(), 'voiceCount'] = 0
+
+s.loc[:, 'noiseCount'] = adata.loc[adata['audioId'] == 2, ].groupby(['userId', 'time'])['audioId'].count()
+s.loc[s['noiseCount'].isna(), 'noiseCount'] = 0
+
+s.loc[:, 'unknownAudioCount'] = adata.loc[adata['audioId'] == 1, ].groupby(['userId', 'time'])['audioId'].count()
+s.loc[s['unknownAudioCount'].isna(), 'unknownAudioCount'] = 0
+
 
 # latitude and longitude mean and std
 gpsdata = pd.read_csv('processing/gps.csv')
