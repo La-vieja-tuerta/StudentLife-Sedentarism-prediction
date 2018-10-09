@@ -1,0 +1,211 @@
+COSAS A PROBAR
+
+metodos de regresion
+
+para el desbalanceo de clases:
+-resampling y oversamplint
+-SMOTE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+LinearSVC(C=1000, verbose=True)
+                precision    recall  f1-score   support
+less sedentary       0.90      0.90      0.90      5261
+     sedentary       0.00      0.00      0.00      1961
+very sedentary       0.72      0.98      0.83      5227
+   avg / total       0.68      0.79      0.73     12449
+
+
+clf = SGDClassifier(max_iter=10000)
+                precision    recall  f1-score   support
+less sedentary       0.91      0.90      0.90      5313
+     sedentary       0.00      0.00      0.00      1964
+very sedentary       0.71      0.99      0.82      5172
+   avg / total       0.68      0.79      0.73     12449
+
+
+
+model = Sequential([
+    Dense(50, activation='tanh', input_shape=(22,)),
+    Dense(50, activation='tanh'),
+    Dense(3, activation='softmax')
+])
+
+model.compile(loss='categorical_crossentropy',
+              optimizer='RMSprop',
+              metrics=['categorical_accuracy'])
+
+h = model.fit(X_train, y_train, epochs=10, batch_size=64, verbose=2,
+          validation_data=(X_test, y_test))
+
+                 precision    recall  f1-score   support
+           0       0.92      0.90      0.91     10508
+           1       0.48      0.15      0.22      3957
+           2       0.74      0.95      0.83     10432
+   micro avg       0.80      0.80      0.80     24897
+   macro avg       0.71      0.66      0.65     24897
+weighted avg       0.77      0.80      0.77     24897
+
+
+# Initialize the constructor
+model = Sequential([
+    Dense(100, activation='relu', input_shape=(22,)),
+    Dense(100, activation='relu'),
+    Dense(100, activation='relu'),
+    Dense(100, activation='relu'),
+    Dense(3, activation='softmax')
+])
+sgd = SGD(lr=0.01, momentum=0.8, decay=0.0, nesterov=False)
+
+model.compile(loss='categorical_crossentropy',
+              optimizer=sgd,
+              metrics=['categorical_accuracy'])
+
+h = model.fit(X_train, y_train, epochs=20, batch_size=64, verbose=1,
+          validation_data=(X_test, y_test))
+
+y_pred = model.predict(X_test)
+
+print(classification_report(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1)))
+
+              precision    recall  f1-score   support
+           0       0.91      0.90      0.90      8801
+           1       0.41      0.24      0.30      3254
+           2       0.76      0.90      0.83      8485
+   micro avg       0.79      0.79      0.79     20540
+   macro avg       0.70      0.68      0.68     20540
+weighted avg       0.77      0.79      0.78     20540
+
+model = Sequential([
+    Dense(300, activation='relu', input_shape=(22,)),
+    Dense(300, activation='relu'),
+    Dense(300, activation='relu'),
+    Dense(300, activation='relu'),
+    Dense(3, activation='softmax')
+])
+sgd = SGD(lr=0.01, momentum=0.8, decay=0.0, nesterov=False)
+
+model.compile(loss='categorical_crossentropy',
+              optimizer='rmsprop',
+              metrics=['categorical_accuracy'])
+
+h = model.fit(X_train, y_train, epochs=20, batch_size=128, verbose=2,
+          validation_data=(X_test, y_test))
+
+              precision    recall  f1-score   support
+           0       0.91      0.90      0.91      8801
+           1       0.42      0.22      0.29      3254
+           2       0.76      0.91      0.83      8485
+   micro avg       0.80      0.80      0.80     20540
+   macro avg       0.70      0.68      0.67     20540
+weighted avg       0.77      0.80      0.77     20540
+
+
+# Initialize the constructor
+model = Sequential([
+    Dense(20, activation='relu', input_shape=(22,)),
+    Dense(20, activation='relu'),
+    Dense(20, activation='relu'),
+    Dense(20, activation='relu'),
+    Dense(3, activation='softmax')
+])
+sgd = SGD(lr=0.01, momentum=0.8, decay=0.0, nesterov=False)
+
+model.compile(loss='categorical_crossentropy',
+              optimizer='rmsprop',
+              metrics=['categorical_accuracy'])
+
+h = model.fit(X_train, y_train, epochs=20, batch_size=128, verbose=2,
+          validation_data=(X_test, y_test))
+
+                        precision    recall  f1-score   support
+           0       0.92      0.90      0.91      8801
+           1       0.45      0.14      0.22      3254
+           2       0.73      0.95      0.83      8485
+   micro avg       0.80      0.80      0.80     20540
+   macro avg       0.70      0.66      0.65     20540
+weighted avg       0.77      0.80      0.76     20540
+
+
+model = Sequential([
+    Dense(300, activation='relu', input_shape=(22,)),
+    Dense(300, activation='relu'),
+    Dense(300, activation='relu'),
+    Dense(300, activation='relu'),
+    Dense(300, activation='relu'),
+    Dense(300, activation='relu'),
+    Dense(300, activation='relu'),
+    Dense(3, activation='softmax')
+])
+sgd = SGD(lr=0.01, momentum=0.8, decay=0.0, nesterov=False)
+
+model.compile(loss='categorical_crossentropy',
+              optimizer='adam',
+              metrics=['categorical_accuracy'])
+
+h = model.fit(X_train, y_train, epochs=20, batch_size=256, verbose=2,
+          validation_data=(X_test, y_test))
+
+              precision    recall  f1-score   support
+           0       0.89      0.91      0.90      8801
+           1       0.44      0.19      0.26      3254
+           2       0.75      0.91      0.82      8485
+   micro avg       0.79      0.79      0.79     20540
+   macro avg       0.70      0.67      0.66     20540
+weighted avg       0.76      0.79      0.77     20540
+
+model = Sequential([
+    Dense(300, activation='relu', input_shape=(size,)),
+    Dense(300, activation='relu'),
+    Dense(300, activation='relu'),
+    Dense(300, activation='relu'),
+    Dense(3, activation='softmax')
+])
+sgd = SGD(lr=0.01, momentum=0.8, decay=0.0, nesterov=False)
+
+model.compile(loss='categorical_crossentropy',
+              optimizer='adam',
+              metrics=['categorical_accuracy'])
+
+              precision    recall  f1-score   support
+           0       0.50      0.46      0.48      6325
+           1       0.40      0.05      0.09      4707
+           2       0.66      0.88      0.76     13865
+   micro avg       0.62      0.62      0.62     24897
+   macro avg       0.52      0.47      0.44     24897
+weighted avg       0.57      0.62      0.56     24897
+
+
+
+en el siguiente modelo se igualaron la cantidad de casos de ejemplo de cada clase
+
+model = Sequential([
+    Dense(300, activation='relu', input_shape=(size,)),
+    Dense(300, activation='relu'),
+    Dense(3, activation='softmax')
+])
+sgd = SGD(lr=0.01, momentum=0.8, decay=0.0, nesterov=False)
+
+model.compile(loss='categorical_crossentropy',
+              optimizer=sgd,
+              metrics=['categorical_accuracy'])
+
+              precision    recall  f1-score   support
+           0       0.54      0.50      0.52      4831
+           1       0.45      0.43      0.44      4386
+           2       0.68      0.74      0.71      5450
+   micro avg       0.57      0.57      0.57     14667
+   macro avg       0.55      0.56      0.56     14667
+weighted avg       0.56      0.57      0.57     14667

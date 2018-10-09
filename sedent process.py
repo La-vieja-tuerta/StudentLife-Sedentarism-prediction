@@ -56,51 +56,7 @@ activitymajor
     # los datos de ubicacion son infimos
 
 
-2013-03-26 23:00:00 3
-2013-03-27 00:00:00 3
-2013-03-27 01:00:00 3
-2013-03-27 02:00:00 3
-2013-03-27 03:00:00 3
-2013-03-27 03:00:00 7
-2013-03-27 03:00:00 9
-2013-03-29 00:00:00 13
-2013-03-31 09:00:00 59
-2013-03-31 10:00:00 59
-2013-03-31 11:00:00 59
-2013-03-31 12:00:00 59
-2013-03-31 13:00:00 59
-2013-03-31 14:00:00 59
-2013-03-31 15:00:00 59
-2013-04-01 06:00:00 59
-2013-04-01 07:00:00 59
-2013-04-01 08:00:00 59
-2013-04-01 09:00:00 59
-2013-04-01 10:00:00 59
-2013-04-02 08:00:00 59
-2013-04-02 09:00:00 59
-2013-04-02 10:00:00 59
-2013-04-03 08:00:00 59
-2013-04-03 09:00:00 59
-2013-04-03 10:00:00 59
-2013-04-03 11:00:00 59
-2013-04-04 07:00:00 59
-2013-04-04 08:00:00 59
-2013-04-04 09:00:00 59
-2013-04-04 10:00:00 59
-2013-04-08 07:00:00 59
-2013-04-10 21:00:00 59
-2013-04-10 22:00:00 59
-2013-04-10 23:00:00 59
-2013-04-11 00:00:00 59
-2013-04-11 07:00:00 59
-2013-04-11 08:00:00 59
-2013-04-11 09:00:00 59
-2013-04-11 10:00:00 59
-2013-04-11 11:00:00 59
-2013-04-28 12:00:00 59
-2013-04-28 13:00:00 59
-2013-04-28 14:00:00 59
-2013-04-28 15:00:00 59
+hay 14420.575126 en promedio de muestros de actividad por hora
 '''
 import pandas as pd
 import numpy as np
@@ -131,13 +87,16 @@ def Most_Common(lst):
 # prepare activity data
 sdata = pd.read_csv('processing/activity.csv')
 sdata.columns = ['time', 'activityId', 'userId']
-sdata['time'] = pd.to_datetime(sdata['time'], unit='s')
+sdata['time'] = pd.to_datetime(sdata['time'], unit='s').dt.floor('h')
 #sdata = sdata.loc[sdata['activityId'] != 3]
 sdata['isSedentary'] = sdata['activityId'] == 0
-sdata['time'] = sdata['time'].dt.floor('h')
+
+# sedentary mean
+s = pd.DataFrame(sdata.groupby(['userId', 'time'])['isSedentary'].mean())
+aux = s.head(41396) #numero magico
+aux['slevel'] = pd.qcut(aux['isSedentary'], 3, labels=['less sedentary', 'sedentary', 'very sedentary'])
 
 # hourofday
-s = pd.DataFrame(sdata.groupby(['userId', 'time'])['isSedentary'].mean())
 s['hourofday'] = s.index.get_level_values('time').hour
 
 s['partofday'] = 'night'
@@ -351,7 +310,6 @@ wifidataIn['location'] = integer_encoded
 wifidataIn.drop_duplicates(['time', 'location', 'userId'], inplace=True)
 s['wifiChanges'] = wifidataIn.groupby(['userId', 'time'])['location'].count()
 s.loc[s['wifiChanges'].isna(), 'wifiChanges'] = 0
-
 #a = wifidataIn.groupby(['userId', 'time'])['location']
 
 #wifidataNear = wifidata.loc[wifidata['location'].str.startswith('near')]
