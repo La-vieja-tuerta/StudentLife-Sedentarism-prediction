@@ -348,4 +348,4 @@ s.loc[s['wifiChanges'].isna(), 'wifiChanges'] = 0
 #               index_col=[0, 1], parse_dates=True)
 #checkpoint
 #s.to_csv('processing/sedentaryBehaviour.csv')
-#s.to_pickle('sedentarismdata.pkl')
+#s.to_pickle('sedentarism.pkl')
