@@ -24,7 +24,7 @@ swithdummies = pd.get_dummies(s.copy())
 features = [col for col in swithdummies.columns if 'isSedentary' != col]
 
 swithdummies = swithdummies.sort_index()
-swithdummies = swithdummies.shift(-1)
+swithdummies['isSedentary'] = swithdummies['isSedentary'].shift(-1)
 for ind, row in swithdummies.iterrows():
     if not (ind[0], ind[1] + pd.DateOffset(hours=1)) in swithdummies.index:
         swithdummies.loc[(ind[0], ind[1])] = np.nan

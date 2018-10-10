@@ -11,15 +11,18 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report
 from sklearn.linear_model import LogisticRegression
 
-X = pd.read_pickle('Xsamples.pkl')
-y = pd.read_pickle('ysamples.pkl')
+X = pd.read_pickle('classificationXsamples.pkl')
+y = pd.read_pickle('classificationysamples.pkl')
 label_encoder = LabelEncoder()
 y = label_encoder.fit_transform(y)
 X.loc[X['beforeNextDeadline'] > 0, 'beforeNextDeadline'] = np.log(X.loc[X['beforeNextDeadline'] > 0, 'beforeNextDeadline'])
 X.loc[X['afterLastDeadline'] > 0, 'afterLastDeadline'] = np.log(X.loc[X['afterLastDeadline'] > 0, 'afterLastDeadline'])
 y = to_categorical(y)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-numeric_cols = ['cantConversation', 'beforeNextDeadline', 'afterLastDeadline', 'wifiChanges', 'hourofday']
+
+numeric_cols = ['cantConversation', 'beforeNextDeadline', 'afterLastDeadline', 'hourofday', 'wifiChanges',
+                'stationaryCount', 'walkingCount', 'runningCount', 'silenceCount', 'voiceCount', 'noiseCount',
+                'unknownAudioCount', 'isSedentary']
 ss = StandardScaler()
 X_train.loc[:, numeric_cols] = ss.fit_transform(X_train[numeric_cols])
 X_test[numeric_cols] = ss.transform(X_test[numeric_cols])
@@ -32,13 +35,13 @@ X_train = pd.DataFrame(X_train, columns=columns)
 y_train = pd.Series(y_train)
 y_train = to_categorical(y_train)
 y_test = to_categorical(y_test)
-'''
+
 clf = LogisticRegression(random_state=0, solver='lbfgs',
                          multi_class='multinomial')
 clf.fit(X_train, y_train)
 print(clf.score(X_test, y_test))
 print(classification_report(y_test, clf.predict(X_test)))
-
+'''
 size = X.shape[1]
 # Initialize the constructor
 model = Sequential([
