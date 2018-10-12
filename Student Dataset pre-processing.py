@@ -60,28 +60,8 @@ hay 14420.575126 en promedio de muestros de actividad por hora
 '''
 import pandas as pd
 import numpy as np
-
-import datetime as dt
-from collections import Counter
+from utilfunction import *
 from sklearn.preprocessing import LabelEncoder
-
-def createSensingTable(path):
-    df = pd.read_csv(path + '00' + '.csv', index_col=False)
-    df['userId'] = '00'
-    for a in range(1, 60):
-        userId = '0' + str(a) if a < 10 else str(a)
-        try:
-            aux = pd.read_csv(path + userId + '.csv', index_col=False)
-            aux['userId'] = a
-            df = df.append(aux)
-        except:
-            pass
-    return df
-
-
-def Most_Common(lst):
-    data = Counter(lst)
-    return data.most_common(1)[0][0]
 
 
 # prepare activity data
@@ -339,13 +319,38 @@ wifidataIn.drop_duplicates(['time', 'location', 'userId'], inplace=True)
 s['wifiChanges'] = wifidataIn.groupby(['userId', 'time'])['location'].count()
 s.loc[s['wifiChanges'].isna(), 'wifiChanges'] = 0
 #a = wifidataIn.groupby(['userId', 'time'])['location']
-
 #wifidataNear = wifidata.loc[wifidata['location'].str.startswith('near')]
 
 
+#getting dummies
+numeric_cols = ['cantConversation', 'beforeNextDeadline', 'afterLastDeadline', 'hourofday', 'wifiChanges',
+                'stationaryCount', 'walkingCount', 'runningCount', 'silenceCount', 'voiceCount', 'noiseCount',
+                'unknownAudioCount', 'isSedentary']
 
-#s = pd.read_csv('processing/sedentaryBehaviour2.csv',
-#               index_col=[0, 1], parse_dates=True)
+for col in numeric_cols:
+    s[col] = s[col].astype('float')
+
+categorical_cols = ['partofday', 'dayofweek', 'activitymajor']
+
+for col in categorical_cols:
+    s[col] = s[col].astype('category')
+
+dummies = pd.get_dummies(s.select_dtypes(include='category'))
+s.drop(['audiomajor'] + categorical_cols, inplace=True, axis=1)
+swithdummies = pd.concat([s, dummies], axis=1, sort=False)
+
+swithdummies = swithdummies.sort_index()
+swithdummies['isSedentary'] = swithdummies['isSedentary'].shift(-1)
+for ind, row in swithdummies.iterrows():
+    if not (ind[0], ind[1] + pd.DateOffset(hours=1)) in swithdummies.index:
+        swithdummies.loc[(ind[0], ind[1])] = np.nan
+swithdummies.dropna(inplace=True)
+
+swithdummies.loc[swithdummies['beforeNextDeadline'] > 0, 'beforeNextDeadline'] = \
+    np.log(swithdummies.loc[swithdummies['beforeNextDeadline'] > 0, 'beforeNextDeadline'])
+swithdummies.loc[swithdummies['afterLastDeadline'] > 0, 'afterLastDeadline'] = \
+    np.log(swithdummies.loc[swithdummies['afterLastDeadline'] > 0, 'afterLastDeadline'])
+
 #checkpoint
 #s.to_csv('processing/sedentaryBehaviour.csv')
 #s.to_pickle('sedentarism.pkl')

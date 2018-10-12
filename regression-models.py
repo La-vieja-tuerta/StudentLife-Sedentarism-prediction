@@ -30,10 +30,7 @@ numeric_cols = ['cantConversation', 'beforeNextDeadline', 'afterLastDeadline', '
 
 X = pd.read_pickle('regressionXsamples.pkl')
 y = pd.read_pickle('regressionysamples.pkl')
-X.loc[X['beforeNextDeadline'] > 0, 'beforeNextDeadline'] = \
-    np.log(X.loc[X['beforeNextDeadline'] > 0, 'beforeNextDeadline'])
-X.loc[X['afterLastDeadline'] > 0, 'afterLastDeadline'] = \
-    np.log(X.loc[X['afterLastDeadline'] > 0, 'afterLastDeadline'])
+
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=seed)
 ss = StandardScaler()
 X_train[numeric_cols] = ss.fit_transform(X_train[numeric_cols])

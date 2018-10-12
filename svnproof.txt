@@ -1,10 +1,10 @@
 COSAS A PROBAR
 
-metodos de regresion
-
 para el desbalanceo de clases:
 -resampling y oversamplint
 -SMOTE
+
+-probar live-one-out por usuario, y k-fold por usuario
 
 
 

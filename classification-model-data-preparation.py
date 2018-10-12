@@ -16,6 +16,7 @@ s = s.drop(columns=['audiomajor'])
 numeric_cols = ['cantConversation', 'beforeNextDeadline', 'afterLastDeadline', 'hourofday', 'wifiChanges',
                 'stationaryCount', 'walkingCount', 'runningCount', 'silenceCount', 'voiceCount', 'noiseCount',
                 'unknownAudioCount', 'isSedentary', 'slevel']
+
 for col in numeric_cols:
     s[col] = s[col].astype('float')
 
