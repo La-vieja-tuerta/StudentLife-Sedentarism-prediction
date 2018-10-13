@@ -232,7 +232,7 @@ for index, t in conversationData.iterrows():
 #sns.countplot(x='cantConversation', data=s)
 
 #cargo los datos de deadlines
-deadlines = pd.read_csv('dataset/education/deadlines.csv').iloc[:, 0:72]
+deadlines = pd.read_csv('processing/deadlines.csv').iloc[:, 0:72]
 deadlines = pd.melt(deadlines, id_vars='uid', var_name='time', value_name='exams')
 deadlines['time'] = pd.to_datetime(deadlines['time'])
 deadlines['uid'] = deadlines['uid'].str.replace('u', '', regex=True).astype('int')
@@ -336,9 +336,8 @@ for col in categorical_cols:
     s[col] = s[col].astype('category')
 
 dummies = pd.get_dummies(s.select_dtypes(include='category'))
-s.drop(['audiomajor'] + categorical_cols, inplace=True, axis=1)
+s.drop(['audiomajor','hourofday'] + categorical_cols, inplace=True, axis=1)
 swithdummies = pd.concat([s, dummies], axis=1, sort=False)
-
 swithdummies = swithdummies.sort_index()
 swithdummies['isSedentary'] = swithdummies['isSedentary'].shift(-1)
 for ind, row in swithdummies.iterrows():
@@ -350,7 +349,7 @@ swithdummies.loc[swithdummies['beforeNextDeadline'] > 0, 'beforeNextDeadline'] =
     np.log(swithdummies.loc[swithdummies['beforeNextDeadline'] > 0, 'beforeNextDeadline'])
 swithdummies.loc[swithdummies['afterLastDeadline'] > 0, 'afterLastDeadline'] = \
     np.log(swithdummies.loc[swithdummies['afterLastDeadline'] > 0, 'afterLastDeadline'])
-
+swithdummies.to_pickle('sedentarism.pkl')
 #checkpoint
 #s.to_csv('processing/sedentaryBehaviour.csv')
 #s.to_pickle('sedentarism.pkl')
