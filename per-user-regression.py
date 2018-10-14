@@ -1,0 +1,73 @@
+from utilfunction import get_user_data, get_X_y_regression
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn import linear_model
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, MinMaxScaler
+from sklearn.compose import ColumnTransformer, make_column_transformer
+from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import KFold
+from sklearn.ensemble import AdaBoostRegressor
+from sklearn.svm import SVR
+from keras.models import Sequential
+from keras.layers import Dense, Dropout
+from keras.wrappers.scikit_learn import KerasRegressor
+
+import sklearn
+seed = 7
+np.random.seed(seed)
+
+def baseline_model():
+    model = Sequential()
+    model.add(Dense(256, input_dim=26, kernel_initializer='normal', activation='relu'))
+    model.add(Dropout(.2))
+    model.add(Dense(256, input_dim=27, kernel_initializer='normal', activation='relu'))
+    model.add(Dropout(.2))
+    model.add(Dense(1, kernel_initializer='normal'))
+    # Compile model
+    model.compile(loss='mean_squared_error', optimizer='rmsprop')
+    return model
+
+numeric_cols = ['cantConversation', 'beforeNextDeadline', 'afterLastDeadline', 'wifiChanges',
+                'stationaryCount', 'walkingCount', 'runningCount', 'silenceCount', 'voiceCount', 'noiseCount',
+                'unknownAudioCount']
+
+s = pd.read_pickle('sedentarism.pkl')
+
+transformer = ColumnTransformer([('transformer', StandardScaler(),
+                                  numeric_cols)],
+                                remainder='passthrough')
+
+model = make_pipeline(transformer, linear_model.LinearRegression())
+
+'''
+estimators = []
+estimators.append(('standardize', transformer))
+estimators.append(('mlp', KerasRegressor(build_fn=baseline_model, epochs=20, batch_size=256, verbose=1)))
+model2 = Pipeline(estimators)
+'''
+
+users = np.arange(1,50)
+mseMean = []
+mseStd = []
+mseMeanLineal = []
+mseMeanNN = []
+plt.close()
+
+model = make_pipeline(transformer, linear_model.LinearRegression())
+
+for userid in s.index.get_level_values(0).drop_duplicates():
+    X, y = get_X_y_regression(get_user_data(s, userid))
+    kfold = KFold(n_splits=10, random_state=seed)
+    results = cross_val_score(model, X, y, cv=kfold, scoring='mean_squared_error')
+    mseMeanLineal.append(-results.mean())
+    if userid%10 == 0:
+        print('modelos sobre usuario ', userid, ' finalizado.')
+plt.legend()
+plt.show()
+
+# probar haciend el logaritmo de la salida

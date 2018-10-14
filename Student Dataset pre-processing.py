@@ -62,7 +62,7 @@ import pandas as pd
 import numpy as np
 from utilfunction import *
 from sklearn.preprocessing import LabelEncoder
-
+from utilfunction import *
 
 # prepare activity data
 sdata = pd.read_csv('processing/activity.csv')
@@ -230,7 +230,7 @@ for index, t in conversationData.iterrows():
 #sns.lmplot('dayofweek', 'hourofday', data=s, fit_reg=False)
 
 #sns.countplot(x='cantConversation', data=s)
-
+'''
 #cargo los datos de deadlines
 deadlines = pd.read_csv('processing/deadlines.csv').iloc[:, 0:72]
 deadlines = pd.melt(deadlines, id_vars='uid', var_name='time', value_name='exams')
@@ -285,7 +285,7 @@ def getHourstoNextDeadLine(user, date):
 
 for ind, row in s.iterrows():
     s.at[ind, 'afterLastDeadline'] = getHourstoNextDeadLine(ind[0], pd.to_datetime(ind[1]))
-
+'''
 
 
 calendardata = pd.read_csv('processing/calendar.csv')
@@ -323,7 +323,7 @@ s.loc[s['wifiChanges'].isna(), 'wifiChanges'] = 0
 
 
 #getting dummies
-numeric_cols = ['cantConversation', 'beforeNextDeadline', 'afterLastDeadline', 'hourofday', 'wifiChanges',
+numeric_cols = ['cantConversation', 'hourofday', 'wifiChanges',
                 'stationaryCount', 'walkingCount', 'runningCount', 'silenceCount', 'voiceCount', 'noiseCount',
                 'unknownAudioCount', 'isSedentary']
 
@@ -339,17 +339,19 @@ dummies = pd.get_dummies(s.select_dtypes(include='category'))
 s.drop(['audiomajor','hourofday'] + categorical_cols, inplace=True, axis=1)
 swithdummies = pd.concat([s, dummies], axis=1, sort=False)
 swithdummies = swithdummies.sort_index()
-swithdummies['isSedentary'] = swithdummies['isSedentary'].shift(-1)
 for ind, row in swithdummies.iterrows():
     if not (ind[0], ind[1] + pd.DateOffset(hours=1)) in swithdummies.index:
         swithdummies.loc[(ind[0], ind[1])] = np.nan
-swithdummies.dropna(inplace=True)
 
+swithdummies['isSedentary'] = shift_hours(swithdummies)
+swithdummies.dropna(inplace=True)
+'''
 swithdummies.loc[swithdummies['beforeNextDeadline'] > 0, 'beforeNextDeadline'] = \
     np.log(swithdummies.loc[swithdummies['beforeNextDeadline'] > 0, 'beforeNextDeadline'])
 swithdummies.loc[swithdummies['afterLastDeadline'] > 0, 'afterLastDeadline'] = \
     np.log(swithdummies.loc[swithdummies['afterLastDeadline'] > 0, 'afterLastDeadline'])
-swithdummies.to_pickle('sedentarism.pkl')
+'''
+swithdummies.to_pickle('sedentarism3.pkl')
 #checkpoint
 #s.to_csv('processing/sedentaryBehaviour.csv')
 #s.to_pickle('sedentarism.pkl')

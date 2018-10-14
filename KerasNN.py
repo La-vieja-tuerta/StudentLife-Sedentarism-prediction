@@ -4,6 +4,7 @@ from keras.utils import to_categorical
 from keras.optimizers import SGD
 import pandas as pd
 import numpy as np
+from utilfunction import *
 from imblearn.over_sampling import SMOTE
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
@@ -11,18 +12,14 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report
 from sklearn.linear_model import LogisticRegression
 
-X = pd.read_pickle('classificationXsamples.pkl')
-y = pd.read_pickle('classificationysamples.pkl')
-label_encoder = LabelEncoder()
-y = label_encoder.fit_transform(y)
-X.loc[X['beforeNextDeadline'] > 0, 'beforeNextDeadline'] = np.log(X.loc[X['beforeNextDeadline'] > 0, 'beforeNextDeadline'])
-X.loc[X['afterLastDeadline'] > 0, 'afterLastDeadline'] = np.log(X.loc[X['afterLastDeadline'] > 0, 'afterLastDeadline'])
+df = pd.read_pickle('sedentarism3.pkl')
+X, y = get_X_y_classification(df)
 y = to_categorical(y)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-numeric_cols = ['cantConversation', 'beforeNextDeadline', 'afterLastDeadline', 'hourofday', 'wifiChanges',
+numeric_cols = ['cantConversation', 'wifiChanges',
                 'stationaryCount', 'walkingCount', 'runningCount', 'silenceCount', 'voiceCount', 'noiseCount',
-                'unknownAudioCount', 'isSedentary']
+                'unknownAudioCount']
 ss = StandardScaler()
 X_train.loc[:, numeric_cols] = ss.fit_transform(X_train[numeric_cols])
 X_test[numeric_cols] = ss.transform(X_test[numeric_cols])
