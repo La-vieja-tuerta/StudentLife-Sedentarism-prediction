@@ -12,7 +12,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report
 from sklearn.linear_model import LogisticRegression
 
-df = pd.read_pickle('sedentarism4.pkl')
+df = pd.read_pickle('sedentarism.pkl')
 X, y = get_X_y_classification(df)
 y = to_categorical(y)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=7)
@@ -42,18 +42,16 @@ print(classification_report(y_test, clf.predict(X_test)))
 size = X.shape[1]
 # Initialize the constructor
 model = Sequential([
-    Dense(64, activation='sigmoid', input_shape=(size,)),
-    Dense(64, activation='relu'),
-    Dense(64, activation='relu'),
+    Dense(64, activation='relu', input_shape=(size,)),
     Dense(64, activation='relu'),
     Dense(3, activation='softmax')
 ])
 
 model.compile(loss='categorical_crossentropy',
-              optimizer='rmsprop',
+              optimizer='adam',
               metrics=['categorical_accuracy'])
 
-h = model.fit(X_train, y_train, epochs=20, batch_size=128, verbose=2,
+h = model.fit(X_train, y_train, epochs=200, batch_size=256, verbose=2,
           validation_data=(X_test, y_test))
 
 y_pred = model.predict(X_test)

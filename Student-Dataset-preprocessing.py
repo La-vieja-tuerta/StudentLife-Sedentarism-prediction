@@ -338,11 +338,13 @@ for col in categorical_cols:
 dummies = pd.get_dummies(s.select_dtypes(include='category'))
 s.drop(['audiomajor','hourofday'] + categorical_cols, inplace=True, axis=1)
 swithdummies = pd.concat([s, dummies], axis=1, sort=False)
+swithdummies.to_pickle('sdataunshifted.pkl')
+
 swithdummies = swithdummies.sort_index()
+swithdummies['isSedentary'] = swithdummies['isSedentary'].shift(-1)
 for ind, row in swithdummies.iterrows():
     if not (ind[0], ind[1] + pd.DateOffset(hours=1)) in swithdummies.index:
         swithdummies.loc[(ind[0], ind[1])] = np.nan
-
 swithdummies['isSedentary'] = shift_hours(swithdummies)
 swithdummies.dropna(inplace=True)
 '''
@@ -351,7 +353,7 @@ swithdummies.loc[swithdummies['beforeNextDeadline'] > 0, 'beforeNextDeadline'] =
 swithdummies.loc[swithdummies['afterLastDeadline'] > 0, 'afterLastDeadline'] = \
     np.log(swithdummies.loc[swithdummies['afterLastDeadline'] > 0, 'afterLastDeadline'])
 '''
-swithdummies.to_pickle('sedentarism4.pkl')
+swithdummies.to_pickle('sedentarism.pkl')
 #checkpoint
 #s.to_csv('processing/sedentaryBehaviour.csv')
 #s.to_pickle('sedentarism.pkl')

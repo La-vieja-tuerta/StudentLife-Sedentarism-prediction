@@ -21,7 +21,7 @@ clf = LogisticRegression(random_state=seed, solver='lbfgs',
 
 model = make_pipeline(transformer, clf)
 
-df = pd.read_pickle('sedentarism3.pkl')
+df = pd.read_pickle('sedentarism.pkl')
 
 precision1, recall1 = per_user_classification(df, model)
 precision2, recall2 = live_one_out_classification(df, model)
