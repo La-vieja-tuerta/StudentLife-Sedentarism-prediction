@@ -53,7 +53,7 @@ model.compile(loss='categorical_crossentropy',
               optimizer='rmsprop',
               metrics=['categorical_accuracy'])
 
-h = model.fit(X_train, y_train, epochs=100, batch_size=128, verbose=2,
+h = model.fit(X_train, y_train, epochs=20, batch_size=128, verbose=2,
           validation_data=(X_test, y_test))
 
 y_pred = model.predict(X_test)
