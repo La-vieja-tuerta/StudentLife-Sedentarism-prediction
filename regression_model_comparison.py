@@ -5,8 +5,9 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import cross_validate
+from numpy.random import seed
+seed(7)
 
-import sklearn
 numeric_cols = ['cantConversation', 'wifiChanges',
                 'stationaryCount', 'walkingCount', 'runningCount', 'silenceCount', 'voiceCount', 'noiseCount',
                 'unknownAudioCount']

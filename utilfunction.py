@@ -4,7 +4,14 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import cross_val_score, cross_validate
 from sklearn.metrics import mean_squared_error, precision_score, recall_score
 from sklearn.model_selection import LeaveOneGroupOut
+from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import LogisticRegression
+import numpy as np
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import StandardScaler
+from numpy.random import seed
+seed(7)
+
 
 def createSensingTable(path):
     df = pd.read_csv(path + '00' + '.csv', index_col=False)
@@ -31,34 +38,29 @@ def get_user_data(data, userId):
     except KeyError:
         print('El usuario ', userId, ' no existe.')
 
-def get_non_user_data(data, userId):
-    try:
-        return data.loc[data.index.get_level_values(0) != userId].copy()
-    except KeyError:
-        print('El usuario ', userId, ' no existe.')
-
-def gen_live_one_out(df):
-    for i in df.index.get_level_values(0).drop_duplicates():
-        yield get_non_user_data(df,i), get_user_data(df,i)
-
 def get_X_y_regression(df):
-    features = [col for col in df.columns if 'isSedentary' != col]
-    return df[features].copy(), df['isSedentary'].copy()
+    dfcopy = df.copy()
+    features = [col for col in dfcopy.columns if 'isSedentary' != col]
+    return dfcopy[features], dfcopy['isSedentary']
 
-def get_X_y_classification(df):
-    df['sclass'] = ''
-    df.loc[df['isSedentary'] > 0.9999, 'sclass'] = 0  # 'very sedentary'
-    df.loc[df['isSedentary'].between(0.9052, 0.9999), 'sclass'] = 1  # 'sedentary'
-    df.loc[df['isSedentary'] < 0.9052, 'sclass'] = 2  # 'less sedentary'
-    features = [col for col in df.columns if 'sclass' != col]
-    return df[features].copy(), df['sclass'].copy()
+def get_X_y_classification(df, deleteSLevel):
+    dfcopy = df.copy()
+    dfcopy['sclass'] = ''
+    dfcopy.loc[df['isSedentary'] > 0.9999, 'sclass'] = 0  # 'very sedentary'
+    dfcopy.loc[df['isSedentary'].between(0.9052, 0.9999), 'sclass'] = 1  # 'sedentary'
+    dfcopy.loc[df['isSedentary'] < 0.9052, 'sclass'] = 2  # 'less sedentary'
+    if deleteSLevel:
+        dfcopy.drop(['isSedentary'], inplace=True, axis=1)
+    features = [col for col in dfcopy.columns if 'sclass' != col]
+    return dfcopy[features], dfcopy['sclass']
 
 def per_user_regression(df, model):
     print('per_user_regression')
+    dfcopy = df.copy()
     seed = 7
     mse = []
     for userid in df.index.get_level_values(0).drop_duplicates():
-        X, y = get_X_y_regression(get_user_data(df, userid))
+        X, y = get_X_y_regression(get_user_data(dfcopy, userid))
         kfold = KFold(n_splits=10, random_state=seed)
         results = cross_val_score(model, X, y, cv=kfold, scoring='neg_mean_squared_error')
         mse.append(-results.mean())
@@ -68,12 +70,13 @@ def per_user_regression(df, model):
 
 def live_one_out_regression(df, model):
     print('live_one_out_regression')
+    dfcopy = df.copy()
     seed = 7
     mse = []
     i = 0
     logo = LeaveOneGroupOut()
     groups = df.index.get_level_values(0)
-    X, y = get_X_y_regression(df)
+    X, y = get_X_y_regression(dfcopy)
     for train_index, test_index in logo.split(X, y, groups):
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
@@ -88,12 +91,13 @@ def live_one_out_regression(df, model):
 
 def per_user_classification(df, model):
     print('per_user_classification')
+    dfcopy = df.copy()
     scoring = ['precision_weighted', 'recall_weighted']
     seed = 7
     precision = []
     recall = []
     for userid in df.index.get_level_values(0).drop_duplicates():
-        X, y = get_X_y_classification(get_user_data(df, userid))
+        X, y = get_X_y_classification(get_user_data(dfcopy, userid))
         kfold = KFold(n_splits=10, random_state=seed)
         results = cross_validate(model, X, y, cv=kfold, scoring=scoring)
         precision.append(results['test_precision_weighted'].mean())
@@ -103,13 +107,14 @@ def per_user_classification(df, model):
     return precision, recall
 
 def live_one_out_classification(df, model):
+    dfcopy = df.copy()
     print('live_one_out_classification')
     i = 0
     precision = []
     recall = []
     logo = LeaveOneGroupOut()
     groups = df.index.get_level_values(0)
-    X, y = get_X_y_classification(df)
+    X, y = get_X_y_classification(dfcopy)
     for train_index, test_index in logo.split(X, y, groups):
         X_train, X_test = X.iloc[train_index], X.iloc[test_index]
         y_train, y_test = y.iloc[train_index], y.iloc[test_index]
@@ -122,5 +127,24 @@ def live_one_out_classification(df, model):
         i += 1
     return precision, recall
 
-def shift_hours(df):
-    return df.sort_index()['isSedentary'].shift(-1)
+
+
+def shift_hours(df, n):
+    print('Shifting ', n, 'hours.')
+    dfcopy = df.copy().sort_index()
+    for ind, row in df.iterrows():
+        try:
+            dfcopy.at[(ind[0], ind[1]),'isSedentary'] = dfcopy.at[(ind[0], ind[1] + pd.DateOffset(hours=n)), 'isSedentary']
+        except KeyError:
+            dfcopy.at[(ind[0], ind[1]), 'isSedentary'] = np.nan
+    dfcopy.dropna(inplace=True)
+    return dfcopy
+
+def create_model(clf):
+    numeric_cols = ['cantConversation', 'wifiChanges',
+                    'stationaryCount', 'walkingCount', 'runningCount', 'silenceCount', 'voiceCount', 'noiseCount',
+                    'unknownAudioCount']
+
+    transformer = ColumnTransformer([('scale', StandardScaler(), numeric_cols)],
+                                    remainder='passthrough')
+    return make_pipeline(transformer, clf)

@@ -6,18 +6,21 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import cross_validate
-seed = 7
+
+from numpy.random import seed
+seed(7)
+
 import sklearn
 numeric_cols = ['cantConversation', 'wifiChanges',
                 'stationaryCount', 'walkingCount', 'runningCount', 'silenceCount', 'voiceCount', 'noiseCount',
                 'unknownAudioCount']
 
-transformer = ColumnTransformer([('transformer', StandardScaler(),
-                                  numeric_cols)],
+transformer = ColumnTransformer([('scale', StandardScaler(), numeric_cols)],
                                 remainder='passthrough')
 
-clf = LogisticRegression(random_state=seed, solver='lbfgs',
+clf = LogisticRegression(solver='liblinear',
                          multi_class='ovr', max_iter=400)
+
 
 model = make_pipeline(transformer, clf)
 
