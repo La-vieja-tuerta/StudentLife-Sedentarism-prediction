@@ -41,16 +41,22 @@ def get_user_data(data, userId):
 def get_X_y_regression(df):
     dfcopy = df.copy()
     features = [col for col in dfcopy.columns if 'isSedentary' != col]
-    return dfcopy[features], dfcopy['isSedentary']
+    return dfcopy[features].reset_index(drop=True), dfcopy['isSedentary'].reset_index(drop=True)
 
-def get_X_y_classification(df, deleteSLevel):
+def makeSedentaryClasses(df):
     dfcopy = df.copy()
     dfcopy['sclass'] = ''
     dfcopy.loc[df['isSedentary'] > 0.9999, 'sclass'] = 0  # 'very sedentary'
     dfcopy.loc[df['isSedentary'].between(0.9052, 0.9999), 'sclass'] = 1  # 'sedentary'
     dfcopy.loc[df['isSedentary'] < 0.9052, 'sclass'] = 2  # 'less sedentary'
-    if deleteSLevel:
-        dfcopy.drop(['isSedentary'], inplace=True, axis=1)
+    dfcopy['actualClass'] = dfcopy['sclass']
+    dfcopy.drop(['isSedentary'], inplace=True, axis=1)
+    return dfcopy
+
+def get_X_y_classification(df, withActualClass):
+    dfcopy = df.copy()
+    if not withActualClass:
+        dfcopy.drop(['actualClass'], inplace=True, axis=1)
     features = [col for col in dfcopy.columns if 'sclass' != col]
     return dfcopy[features], dfcopy['sclass']
 
@@ -89,16 +95,16 @@ def live_one_out_regression(df, model):
     return mse
 
 
-def per_user_classification(df, model):
+def per_user_classification(df, model, withActualClass):
     print('per_user_classification')
     dfcopy = df.copy()
     scoring = ['precision_weighted', 'recall_weighted']
     seed = 7
     precision = []
     recall = []
+    kfold = KFold(n_splits=10, random_state=seed)
     for userid in df.index.get_level_values(0).drop_duplicates():
-        X, y = get_X_y_classification(get_user_data(dfcopy, userid))
-        kfold = KFold(n_splits=10, random_state=seed)
+        X, y = get_X_y_classification(get_user_data(dfcopy, userid), withActualClass)
         results = cross_validate(model, X, y, cv=kfold, scoring=scoring)
         precision.append(results['test_precision_weighted'].mean())
         recall.append(results['test_recall_weighted'].mean())
@@ -106,7 +112,7 @@ def per_user_classification(df, model):
             print('modelos sobre usuario ', userid, ' finalizado.')
     return precision, recall
 
-def live_one_out_classification(df, model):
+def live_one_out_classification(df, model, withActualClass):
     dfcopy = df.copy()
     print('live_one_out_classification')
     i = 0
@@ -114,7 +120,7 @@ def live_one_out_classification(df, model):
     recall = []
     logo = LeaveOneGroupOut()
     groups = df.index.get_level_values(0)
-    X, y = get_X_y_classification(dfcopy)
+    X, y = get_X_y_classification(dfcopy, withActualClass)
     for train_index, test_index in logo.split(X, y, groups):
         X_train, X_test = X.iloc[train_index], X.iloc[test_index]
         y_train, y_test = y.iloc[train_index], y.iloc[test_index]
@@ -129,14 +135,20 @@ def live_one_out_classification(df, model):
 
 
 
-def shift_hours(df, n):
+def shift_hours(df, n, type):
     print('Shifting ', n, 'hours.')
     dfcopy = df.copy().sort_index()
     for ind, row in df.iterrows():
         try:
-            dfcopy.at[(ind[0], ind[1]),'isSedentary'] = dfcopy.at[(ind[0], ind[1] + pd.DateOffset(hours=n)), 'isSedentary']
+            if type == 'regression':
+                dfcopy.at[(ind[0], ind[1]),'isSedentary'] = dfcopy.at[(ind[0], ind[1] + pd.DateOffset(hours=n)), 'isSedentary']
+            elif type == 'classification':
+                dfcopy.at[(ind[0], ind[1]),'sclass'] = dfcopy.at[(ind[0], ind[1] + pd.DateOffset(hours=n)), 'sclass']
         except KeyError:
-            dfcopy.at[(ind[0], ind[1]), 'isSedentary'] = np.nan
+            if type == 'regression':
+                dfcopy.at[(ind[0], ind[1]), 'isSedentary'] = np.nan
+            elif type == 'classification':
+                dfcopy.at[(ind[0], ind[1]), 'sclass'] = None
     dfcopy.dropna(inplace=True)
     return dfcopy
 

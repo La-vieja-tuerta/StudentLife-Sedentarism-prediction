@@ -19,6 +19,7 @@ from numpy.random import seed
 seed(7)
 
 df = pd.read_pickle('sedentarismunshifted.pkl')
+df = makeSedentaryClasses(df)
 
 size = df.shape[1]
 # Initialize the constructor
@@ -97,8 +98,7 @@ recall = []
 for shift in shifts:
     clf = LogisticRegression(solver='liblinear', multi_class='ovr', max_iter=1000)
     model = create_model(clf)
-    print('shift nro ', shift)
-    dfshifted = shift_hours(df,shift)
+    dfshifted = shift_hours(df,shift, 'classification')
     X, y = get_X_y_classification(dfshifted,False)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
     model.fit(X_train, y_train)

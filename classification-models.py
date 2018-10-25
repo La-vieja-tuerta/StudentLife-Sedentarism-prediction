@@ -13,13 +13,13 @@ from sklearn.metrics import classification_report
 from sklearn.linear_model import LogisticRegression
 from sklearn.dummy import DummyClassifier
 
-from numpy.random import seed
-seed(7)
 
-orig = pd.read_pickle('sedentarismunshifted.pkl')
 
-df = shift_hours(orig, 1)
-X, y = get_X_y_classification(df)
+df = pd.read_pickle('sedentarismunshifted.pkl')
+df = makeSedentaryClasses(df)
+df = shift_hours(df, 1, 'regression')
+
+X, y = get_X_y_classification(df, True)
 y = to_categorical(y)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
@@ -66,3 +66,4 @@ print(classification_report(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1)
 #print(classification_report(y_test, DummyClassifier(strategy='stratified', random_state=7)
 #                           .predict(X_test)))
 #model.summary()
+

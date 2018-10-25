@@ -69,10 +69,10 @@ sdata = pd.read_csv('processing/activity.csv')
 sdata.columns = ['time', 'activityId', 'userId']
 sdata['time'] = pd.to_datetime(sdata['time'], unit='s').dt.floor('h')
 #sdata = sdata.loc[sdata['activityId'] != 3]
-sdata['isSedentary'] = sdata['activityId'] == 0
+sdata['slevel'] = sdata['activityId'] == 0
 
 # sedentary mean
-s = pd.DataFrame(sdata.groupby(['userId', 'time'])['isSedentary'].mean())
+s = pd.DataFrame(sdata.groupby(['userId', 'time'])['slevel'].mean())
 
 # hourofday
 s['hourofday'] = s.index.get_level_values('time').hour
@@ -93,19 +93,19 @@ s['activitymajor'] = sdata.groupby(['userId', 'time'])['activityId'].apply(Most_
 
 
 #logs per activity
-s.loc[:, 'stationaryCount'] = sdata.loc[sdata['activityId'] == 0, ].groupby(['userId', 'time'])['isSedentary'].count()
+s.loc[:, 'stationaryCount'] = sdata.loc[sdata['activityId'] == 0, ].groupby(['userId', 'time'])['slevel'].count()
 s.loc[s['stationaryCount'].isna(), 'stationaryCount'] = 0
 
-s.loc[:, 'walkingCount'] = sdata.loc[sdata['activityId'] == 1, ].groupby(['userId', 'time'])['isSedentary'].count()
+s.loc[:, 'walkingCount'] = sdata.loc[sdata['activityId'] == 1, ].groupby(['userId', 'time'])['slevel'].count()
 s.loc[s['walkingCount'].isna(), 'walkingCount'] = 0
 
-s.loc[:, 'runningCount'] = sdata.loc[sdata['activityId'] == 2, ].groupby(['userId', 'time'])['isSedentary'].count()
+s.loc[:, 'runningCount'] = sdata.loc[sdata['activityId'] == 2, ].groupby(['userId', 'time'])['slevel'].count()
 s.loc[s['runningCount'].isna(), 'runningCount'] = 0
 
 # plot
 '''
-s['isSedentary'] = s['isSedentary'].astype('float')
-df = pd.DataFrame(s.groupby(['dayofweek','hourofday'], as_index=False)['isSedentary'].mean()).pivot(index='hourofday', values='isSedentary', columns='dayofweek')
+s['slevel'] = s['slevel'].astype('float')
+df = pd.DataFrame(s.groupby(['dayofweek','hourofday'], as_index=False)['slevel'].mean()).pivot(index='hourofday', values='slevel', columns='dayofweek')
 sns.heatmap(df, vmax=1, cmap="YlGnBu")
 plt.show()
 '''
@@ -325,7 +325,7 @@ s.loc[s['wifiChanges'].isna(), 'wifiChanges'] = 0
 #getting dummies
 numeric_cols = ['cantConversation', 'hourofday', 'wifiChanges',
                 'stationaryCount', 'walkingCount', 'runningCount', 'silenceCount', 'voiceCount', 'noiseCount',
-                'unknownAudioCount', 'isSedentary']
+                'unknownAudioCount', 'slevel']
 
 for col in numeric_cols:
     s[col] = s[col].astype('float')
@@ -339,7 +339,7 @@ dummies = pd.get_dummies(s.select_dtypes(include='category'))
 s.drop(['audiomajor','hourofday'] + categorical_cols, inplace=True, axis=1)
 swithdummies = pd.concat([s, dummies], axis=1, sort=False)
 swithdummies.to_pickle('sedentarismunshifted.pkl')
-swithdummies['isSedentary'] = shift_hours(swithdummies)
+swithdummies['slevel'] = shift_hours(swithdummies)
 '''
 swithdummies.loc[swithdummies['beforeNextDeadline'] > 0, 'beforeNextDeadline'] = \
     np.log(swithdummies.loc[swithdummies['beforeNextDeadline'] > 0, 'beforeNextDeadline'])

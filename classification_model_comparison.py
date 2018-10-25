@@ -11,8 +11,8 @@ from numpy.random import seed
 seed(7)
 
 import sklearn
-numeric_cols = ['cantConversation', 'wifiChanges',
-                'stationaryCount', 'walkingCount', 'runningCount', 'silenceCount', 'voiceCount', 'noiseCount',
+numeric_cols = ['cantConversation', 'wifiChanges', 'stationaryCount', 'walkingCount',
+                'runningCount', 'silenceCount', 'voiceCount', 'noiseCount',
                 'unknownAudioCount']
 
 transformer = ColumnTransformer([('scale', StandardScaler(), numeric_cols)],
@@ -24,18 +24,41 @@ clf = LogisticRegression(solver='liblinear',
 
 model = make_pipeline(transformer, clf)
 
-df = pd.read_pickle('sedentarism.pkl')
+df = pd.read_pickle('sedentarismunshifted.pkl')
+df = makeSedentaryClasses(df)
+df = shift_hours(df,1, 'classification')
 
-precision1, recall1 = per_user_classification(df, model)
-precision2, recall2 = live_one_out_classification(df, model)
 
+precisionPUwithAC, recallPUwithAC = per_user_classification(df, model, True)
+precisionLOGOwithAC, recallLOGOwithAC = live_one_out_classification(df, model, True)
+
+precisionPUwithoutAC, recallPUwithoutAC = per_user_classification(df, model, False)
+precisionLOGOwithoutAC, recallLOGOwithoutAC = live_one_out_classification(df, model, False)
+
+users = np.arange(1,50)
 plt.close()
-fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
-ax1.plot(precision1, label='per_user_classification')
-ax1.plot(precision2, label='live_one_out_classification')
+plt.scatter(users, precisionPUwithAC, label='precisionPUwithAC')
+plt.scatter(users, precisionLOGOwithAC, label='precisionLOGOwithAC')
+plt.scatter(users, precisionPUwithoutAC, label='precisionPUwithoutAC')
+plt.scatter(users, precisionLOGOwithoutAC, label='precisionLOGOwithoutAC')
 
-ax2.plot(recall1)
-ax2.plot(recall2)
+plt.title('model precision')
+plt.ylabel('precision')
+plt.xlabel('user')
+plt.legend(['precisionPUwithAC', 'precisionLOGOwithAC', 'precisionPUwithoutAC', 'precisionLOGOwithoutAC'],
+           loc='best')
+plt.show()
 
-fig.legend()
-fig.show()
+plt.scatter(users, recallPUwithAC, label='recallPUwithAC')
+plt.scatter(users, recallLOGOwithAC, label='recallLOGOwithAC')
+plt.scatter(users, recallPUwithoutAC, label='recallPUwithoutAC')
+plt.scatter(users, recallLOGOwithoutAC, label='recallLOGOwithoutAC')
+
+plt.title('model recall')
+plt.ylabel('recall')
+plt.xlabel('user')
+plt.legend(['recallPUwithAC', 'recallLOGOwithAC', 'recallPUwithoutAC', 'recallLOGOwithoutAC'],
+           loc='lower right')
+plt.show()
+
+
