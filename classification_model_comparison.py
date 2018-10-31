@@ -10,21 +10,21 @@ from sklearn.model_selection import cross_validate
 from numpy.random import seed
 seed(7)
 
-import sklearn
 numeric_cols = ['cantConversation', 'wifiChanges', 'stationaryCount', 'walkingCount',
                 'runningCount', 'silenceCount', 'voiceCount', 'noiseCount',
-                'unknownAudioCount']
+                'unknownAudioCount', 'pastminutes','remainingminutes']
 
 transformer = ColumnTransformer([('scale', StandardScaler(), numeric_cols)],
                                 remainder='passthrough')
 
-clf = LogisticRegression(solver='liblinear',
-                         multi_class='ovr', max_iter=400)
-
+clf = LogisticRegression(solver='liblinear', max_iter=400)
 
 model = make_pipeline(transformer, clf)
 
-df = pd.read_pickle('sedentarismunshifted.pkl')
+df = pd.read_pickle('sedentarismwithoutdummies')
+df.drop(['audiomajor', 'hourofday'], axis=1, inplace=True)
+df = makeDummies(df)
+df = METcalculation(df)
 df = makeSedentaryClasses(df)
 df = shift_hours(df,1, 'classification')
 
@@ -46,7 +46,7 @@ plt.title('model precision')
 plt.ylabel('precision')
 plt.xlabel('user')
 plt.legend(['precisionPUwithAC', 'precisionLOGOwithAC', 'precisionPUwithoutAC', 'precisionLOGOwithoutAC'],
-           loc='best')
+           loc='lower right')
 plt.show()
 
 plt.scatter(users, recallPUwithAC, label='recallPUwithAC')
@@ -59,6 +59,8 @@ plt.ylabel('recall')
 plt.xlabel('user')
 plt.legend(['recallPUwithAC', 'recallLOGOwithAC', 'recallPUwithoutAC', 'recallLOGOwithoutAC'],
            loc='lower right')
+plt.xticks(users, users, rotation='vertical')
+plt.grid(True)
 plt.show()
 
 

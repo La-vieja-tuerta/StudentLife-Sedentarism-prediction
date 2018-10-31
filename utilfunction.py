@@ -46,9 +46,8 @@ def get_X_y_regression(df):
 def makeSedentaryClasses(df):
     dfcopy = df.copy()
     dfcopy['sclass'] = ''
-    dfcopy.loc[df['slevel'] > 0.9999, 'sclass'] = 0  # 'very sedentary'
-    dfcopy.loc[df['slevel'].between(0.9052, 0.9999), 'sclass'] = 1  # 'sedentary'
-    dfcopy.loc[df['slevel'] < 0.9052, 'sclass'] = 2  # 'less sedentary'
+    dfcopy.loc[df['slevel'] >= 1.5, 'sclass'] = 0  # 'sedentary'
+    dfcopy.loc[df['slevel'] < 1.5, 'sclass'] = 1  # 'not sedentary'
     dfcopy['actualClass'] = dfcopy['sclass']
     dfcopy.drop(['slevel'], inplace=True, axis=1)
     return dfcopy
@@ -58,12 +57,12 @@ def get_X_y_classification(df, withActualClass):
     if not withActualClass:
         dfcopy.drop(['actualClass'], inplace=True, axis=1)
     features = [col for col in dfcopy.columns if 'sclass' != col]
-    return dfcopy[features], dfcopy['sclass']
+    return dfcopy[features].reset_index(drop=True), dfcopy['sclass'].reset_index(drop=True)
+
 
 def per_user_regression(df, model):
     print('per_user_regression')
     dfcopy = df.copy()
-    seed = 7
     mse = []
     for userid in df.index.get_level_values(0).drop_duplicates():
         X, y = get_X_y_regression(get_user_data(dfcopy, userid))
@@ -77,7 +76,6 @@ def per_user_regression(df, model):
 def live_one_out_regression(df, model):
     print('live_one_out_regression')
     dfcopy = df.copy()
-    seed = 7
     mse = []
     i = 0
     logo = LeaveOneGroupOut()
@@ -99,7 +97,6 @@ def per_user_classification(df, model, withActualClass):
     print('per_user_classification')
     dfcopy = df.copy()
     scoring = ['precision_weighted', 'recall_weighted']
-    seed = 7
     precision = []
     recall = []
     kfold = KFold(n_splits=10, random_state=seed)
@@ -167,10 +164,24 @@ def create_model(clf):
 #walking: 3,5
 #running: 8
 
-def METcalculation(df):
-    totalLogs = df['stationaryCount'] + df['walkingCount'] + df['runningCount']
-    stationary = df['stationaryCount']
-    walking = df['walkingCount']
-    running = df['runningCount']
-    metLevel = (stationary * 1.2 + walking * 3.5 + running * 8) / totalLogs
-    return metLevel
+def METcalculation(df, metValues=(1.2,3.5,8)):
+    dfcopy = df.copy()
+    totalLogs = dfcopy['stationaryCount'] + dfcopy['walkingCount'] + dfcopy['runningCount']
+    stationary = dfcopy['stationaryCount']
+    walking = dfcopy['walkingCount']
+    running = dfcopy['runningCount']
+    metLevel = (stationary * metValues[0] + walking * metValues[1] + running * metValues[2]) / totalLogs
+    dfcopy['slevel'] = metLevel
+    return dfcopy
+
+
+def makeDummies(df):
+    dfcopy = df.copy()
+    categorical_cols = ['partofday', 'dayofweek', 'activitymajor']
+    for col in categorical_cols:
+        dfcopy[col] = dfcopy[col].astype('category')
+    for col in set(set(df.columns) - set(categorical_cols)):
+        dfcopy[col] = dfcopy[col].astype('float')
+    dummies = pd.get_dummies(dfcopy.select_dtypes(include='category'))
+    dfcopy.drop(categorical_cols, inplace=True, axis=1)
+    return pd.concat([dfcopy, dummies], axis=1, sort=False)
