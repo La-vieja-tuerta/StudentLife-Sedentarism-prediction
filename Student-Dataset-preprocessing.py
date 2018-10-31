@@ -60,7 +60,6 @@ hay 14420.575126 en promedio de muestros de actividad por hora
 '''
 import pandas as pd
 import numpy as np
-from utilfunction import *
 from sklearn.preprocessing import LabelEncoder
 from utilfunction import *
 
@@ -68,11 +67,11 @@ from utilfunction import *
 sdata = pd.read_csv('processing/activity.csv')
 sdata.columns = ['time', 'activityId', 'userId']
 sdata['time'] = pd.to_datetime(sdata['time'], unit='s').dt.floor('h')
-#sdata = sdata.loc[sdata['activityId'] != 3]
+sdata = sdata.loc[sdata['activityId'] != 3]
 sdata['slevel'] = sdata['activityId'] == 0
 
 # sedentary mean
-s = pd.DataFrame(sdata.groupby(['userId', 'time'])['slevel'].mean())
+s = pd.DataFrame(sdata.groupby( by= ['userId', pd.Grouper(key='time', freq='H')] )['slevel'].mean())
 
 # hourofday
 s['hourofday'] = s.index.get_level_values('time').hour
@@ -88,9 +87,10 @@ s.loc[s.index.get_level_values('time').dayofweek == 5, 'dayofweek'] = 'saturday'
 s.loc[s.index.get_level_values('time').dayofweek == 6, 'dayofweek'] = 'sunday'
 
 # activitymajor
-sdata.loc[sdata['activityId'] == 3, 'activityId'] = 1
 s['activitymajor'] = sdata.groupby(['userId', 'time'])['activityId'].apply(Most_Common)
 
+s['pastminutes'] = s.index.get_level_values(1).hour * 60 + s.index.get_level_values(1).minute
+s['remainingminutes'] = 24*60 - s['pastminutes']
 
 #logs per activity
 s.loc[:, 'stationaryCount'] = sdata.loc[sdata['activityId'] == 0, ].groupby(['userId', 'time'])['slevel'].count()
@@ -321,11 +321,12 @@ s.loc[s['wifiChanges'].isna(), 'wifiChanges'] = 0
 #a = wifidataIn.groupby(['userId', 'time'])['location']
 #wifidataNear = wifidata.loc[wifidata['location'].str.startswith('near')]
 
+s.to_pickle('sedentarismwithoutdummies')
 
 #getting dummies
 numeric_cols = ['cantConversation', 'hourofday', 'wifiChanges',
                 'stationaryCount', 'walkingCount', 'runningCount', 'silenceCount', 'voiceCount', 'noiseCount',
-                'unknownAudioCount', 'slevel']
+                'unknownAudioCount', 'slevel', 'pastminutes', 'remainingminutes']
 
 for col in numeric_cols:
     s[col] = s[col].astype('float')
@@ -338,15 +339,16 @@ for col in categorical_cols:
 dummies = pd.get_dummies(s.select_dtypes(include='category'))
 s.drop(['audiomajor','hourofday'] + categorical_cols, inplace=True, axis=1)
 swithdummies = pd.concat([s, dummies], axis=1, sort=False)
+
 swithdummies.to_pickle('sedentarismunshifted.pkl')
-swithdummies['slevel'] = shift_hours(swithdummies)
+#swithdummies['slevel'] = shift_hours(swithdummies)
 '''
 swithdummies.loc[swithdummies['beforeNextDeadline'] > 0, 'beforeNextDeadline'] = \
     np.log(swithdummies.loc[swithdummies['beforeNextDeadline'] > 0, 'beforeNextDeadline'])
 swithdummies.loc[swithdummies['afterLastDeadline'] > 0, 'afterLastDeadline'] = \
     np.log(swithdummies.loc[swithdummies['afterLastDeadline'] > 0, 'afterLastDeadline'])
 '''
-swithdummies.to_pickle('sedentarism.pkl')
+#swithdummies.to_pickle('sedentarism.pkl')
 #checkpoint
 #s.to_csv('processing/sedentaryBehaviour.csv')
 #s.to_pickle('sedentarism.pkl')

@@ -14,10 +14,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.dummy import DummyClassifier
 
 
-
 df = pd.read_pickle('sedentarismunshifted.pkl')
 df = makeSedentaryClasses(df)
-df = shift_hours(df, 1, 'regression')
+df = shift_hours(df, 1, 'classification')
 
 X, y = get_X_y_classification(df, True)
 y = to_categorical(y)
@@ -25,10 +24,11 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
 numeric_cols = ['cantConversation', 'wifiChanges',
                 'stationaryCount', 'walkingCount', 'runningCount', 'silenceCount', 'voiceCount', 'noiseCount',
-                'unknownAudioCount']
+                'unknownAudioCount', 'remainingminutes', 'pastminutes']
 ss = StandardScaler()
 X_train.loc[:, numeric_cols] = ss.fit_transform(X_train[numeric_cols])
 X_test[numeric_cols] = ss.transform(X_test[numeric_cols])
+
 '''
 #codigo para usar oversampling
 columns = X.columns
@@ -40,7 +40,7 @@ y_train = to_categorical(y_train)
 y_test = to_categorical(y_test)
 
 clf = LogisticRegression(random_state=0, solver='lbfgs',
-                         multi_class='multinomial')
+                         multi_class='ovr')
 clf.fit(X_train, y_train)
 print(clf.score(X_test, y_test))
 print(classification_report(y_test, clf.predict(X_test)))
@@ -48,8 +48,12 @@ print(classification_report(y_test, clf.predict(X_test)))
 size = X.shape[1]
 # Initialize the constructor
 model = Sequential([
-    Dense(64, activation='relu', input_shape=(size,)),
+    Dense(256, activation='relu', input_shape=(size,)),
+    Dropout(.4),
+    Dense(128, activation='relu'),
+    Dropout(.2),
     Dense(64, activation='relu'),
+    Dense(32, activation='relu'),
     Dense(3, activation='softmax')
 ])
 
@@ -63,7 +67,8 @@ h = model.fit(X_train, y_train, epochs=20, batch_size=256, verbose=2,
 y_pred = model.predict(X_test)
 
 print(classification_report(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1)))
-#print(classification_report(y_test, DummyClassifier(strategy='stratified', random_state=7)
-#                           .predict(X_test)))
+print(classification_report(y_test, DummyClassifier(strategy='stratified', random_state=7)
+                           .fit(X_train,y_train).predict(X_test)))
 #model.summary()
+
 

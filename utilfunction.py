@@ -46,11 +46,11 @@ def get_X_y_regression(df):
 def makeSedentaryClasses(df):
     dfcopy = df.copy()
     dfcopy['sclass'] = ''
-    dfcopy.loc[df['isSedentary'] > 0.9999, 'sclass'] = 0  # 'very sedentary'
-    dfcopy.loc[df['isSedentary'].between(0.9052, 0.9999), 'sclass'] = 1  # 'sedentary'
-    dfcopy.loc[df['isSedentary'] < 0.9052, 'sclass'] = 2  # 'less sedentary'
+    dfcopy.loc[df['slevel'] > 0.9999, 'sclass'] = 0  # 'very sedentary'
+    dfcopy.loc[df['slevel'].between(0.9052, 0.9999), 'sclass'] = 1  # 'sedentary'
+    dfcopy.loc[df['slevel'] < 0.9052, 'sclass'] = 2  # 'less sedentary'
     dfcopy['actualClass'] = dfcopy['sclass']
-    dfcopy.drop(['isSedentary'], inplace=True, axis=1)
+    dfcopy.drop(['slevel'], inplace=True, axis=1)
     return dfcopy
 
 def get_X_y_classification(df, withActualClass):
@@ -135,19 +135,19 @@ def live_one_out_classification(df, model, withActualClass):
 
 
 
-def shift_hours(df, n, type):
+def shift_hours(df, n, modelType):
     print('Shifting ', n, 'hours.')
     dfcopy = df.copy().sort_index()
-    for ind, row in df.iterrows():
+    for ind, row in dfcopy.iterrows():
         try:
-            if type == 'regression':
-                dfcopy.at[(ind[0], ind[1]),'isSedentary'] = dfcopy.at[(ind[0], ind[1] + pd.DateOffset(hours=n)), 'isSedentary']
-            elif type == 'classification':
+            if modelType == 'regression':
+                dfcopy.at[(ind[0], ind[1]),'slevel'] = dfcopy.at[(ind[0], ind[1] + pd.DateOffset(hours=n)), 'slevel']
+            elif modelType == 'classification':
                 dfcopy.at[(ind[0], ind[1]),'sclass'] = dfcopy.at[(ind[0], ind[1] + pd.DateOffset(hours=n)), 'sclass']
         except KeyError:
-            if type == 'regression':
-                dfcopy.at[(ind[0], ind[1]), 'isSedentary'] = np.nan
-            elif type == 'classification':
+            if modelType == 'regression':
+                dfcopy.at[(ind[0], ind[1]), 'slevel'] = np.nan
+            elif modelType == 'classification':
                 dfcopy.at[(ind[0], ind[1]), 'sclass'] = None
     dfcopy.dropna(inplace=True)
     return dfcopy
@@ -155,8 +155,22 @@ def shift_hours(df, n, type):
 def create_model(clf):
     numeric_cols = ['cantConversation', 'wifiChanges',
                     'stationaryCount', 'walkingCount', 'runningCount', 'silenceCount', 'voiceCount', 'noiseCount',
-                    'unknownAudioCount']
+                    'unknownAudioCount','remainingminutes', 'pastminutes']
 
     transformer = ColumnTransformer([('scale', StandardScaler(), numeric_cols)],
                                     remainder='passthrough')
     return make_pipeline(transformer, clf)
+
+# sumar, sacar promadio, multiplicar promedio por MET de cada actividad
+#METS por actividad:
+#standing: 1.2
+#walking: 3,5
+#running: 8
+
+def METcalculation(df):
+    totalLogs = df['stationaryCount'] + df['walkingCount'] + df['runningCount']
+    stationary = df['stationaryCount']
+    walking = df['walkingCount']
+    running = df['runningCount']
+    metLevel = (stationary * 1.2 + walking * 3.5 + running * 8) / totalLogs
+    return metLevel
