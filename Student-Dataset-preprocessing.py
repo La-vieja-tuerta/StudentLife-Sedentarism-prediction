@@ -58,8 +58,6 @@ activitymajor
 
 hay 14420.575126 en promedio de muestros de actividad por hora
 '''
-import pandas as pd
-import numpy as np
 from sklearn.preprocessing import LabelEncoder
 from utilfunction import *
 
@@ -101,14 +99,6 @@ s.loc[s['walkingCount'].isna(), 'walkingCount'] = 0
 
 s.loc[:, 'runningCount'] = sdata.loc[sdata['activityId'] == 2, ].groupby(['userId', 'time'])['slevel'].count()
 s.loc[s['runningCount'].isna(), 'runningCount'] = 0
-
-# plot
-'''
-s['slevel'] = s['slevel'].astype('float')
-df = pd.DataFrame(s.groupby(['dayofweek','hourofday'], as_index=False)['slevel'].mean()).pivot(index='hourofday', values='slevel', columns='dayofweek')
-sns.heatmap(df, vmax=1, cmap="YlGnBu")
-plt.show()
-'''
 
 # prepare audio data
 adata = pd.read_csv('processing/audio.csv')
@@ -321,33 +311,8 @@ s.loc[s['wifiChanges'].isna(), 'wifiChanges'] = 0
 #a = wifidataIn.groupby(['userId', 'time'])['location']
 #wifidataNear = wifidata.loc[wifidata['location'].str.startswith('near')]
 
-s.to_pickle('sedentarismwithoutdummies')
+s.to_pickle('sedentarisdata.pkl')
 
-#getting dummies
-numeric_cols = ['cantConversation', 'hourofday', 'wifiChanges',
-                'stationaryCount', 'walkingCount', 'runningCount', 'silenceCount', 'voiceCount', 'noiseCount',
-                'unknownAudioCount', 'slevel', 'pastminutes', 'remainingminutes']
-
-for col in numeric_cols:
-    s[col] = s[col].astype('float')
-
-categorical_cols = ['partofday', 'dayofweek', 'activitymajor']
-
-for col in categorical_cols:
-    s[col] = s[col].astype('category')
-
-dummies = pd.get_dummies(s.select_dtypes(include='category'))
-s.drop(['audiomajor','hourofday'] + categorical_cols, inplace=True, axis=1)
-swithdummies = pd.concat([s, dummies], axis=1, sort=False)
-
-swithdummies.to_pickle('sedentarismunshifted.pkl')
-#swithdummies['slevel'] = shift_hours(swithdummies)
-'''
-swithdummies.loc[swithdummies['beforeNextDeadline'] > 0, 'beforeNextDeadline'] = \
-    np.log(swithdummies.loc[swithdummies['beforeNextDeadline'] > 0, 'beforeNextDeadline'])
-swithdummies.loc[swithdummies['afterLastDeadline'] > 0, 'afterLastDeadline'] = \
-    np.log(swithdummies.loc[swithdummies['afterLastDeadline'] > 0, 'afterLastDeadline'])
-'''
 #swithdummies.to_pickle('sedentarism.pkl')
 #checkpoint
 #s.to_csv('processing/sedentaryBehaviour.csv')

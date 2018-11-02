@@ -1,6 +1,6 @@
 from collections import Counter
 import pandas as pd
-from sklearn.model_selection import KFold
+from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import cross_val_score, cross_validate
 from sklearn.metrics import mean_squared_error, precision_score, recall_score
 from sklearn.model_selection import LeaveOneGroupOut
@@ -9,6 +9,12 @@ from sklearn.linear_model import LogisticRegression
 import numpy as np
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler
+from keras.utils import to_categorical
+from keras.models import Sequential
+from keras.layers import Dense, Dropout
+from keras.wrappers.scikit_learn import KerasClassifier
+
+
 from numpy.random import seed
 seed(7)
 
@@ -66,7 +72,7 @@ def per_user_regression(df, model):
     mse = []
     for userid in df.index.get_level_values(0).drop_duplicates():
         X, y = get_X_y_regression(get_user_data(dfcopy, userid))
-        kfold = KFold(n_splits=10, random_state=seed)
+        kfold = StratifiedKFold(n_splits=10, random_state=seed)
         results = cross_val_score(model, X, y, cv=kfold, scoring='neg_mean_squared_error')
         mse.append(-results.mean())
         if userid % 10 == 0:
@@ -99,7 +105,7 @@ def per_user_classification(df, model, withActualClass):
     scoring = ['precision_weighted', 'recall_weighted']
     precision = []
     recall = []
-    kfold = KFold(n_splits=10, random_state=seed)
+    kfold = StratifiedKFold(n_splits=10, random_state=seed)
     for userid in df.index.get_level_values(0).drop_duplicates():
         X, y = get_X_y_classification(get_user_data(dfcopy, userid), withActualClass)
         results = cross_validate(model, X, y, cv=kfold, scoring=scoring)
@@ -130,6 +136,31 @@ def live_one_out_classification(df, model, withActualClass):
         i += 1
     return precision, recall
 
+def live_one_out_classificationNN(df, withActualClass):
+    dfcopy = df.copy()
+    print('live_one_out_classification')
+    i = 0
+    precision = []
+    recall = []
+    logo = LeaveOneGroupOut()
+    groups = df.index.get_level_values(0)
+    X, y = get_X_y_classification(dfcopy, withActualClass)
+    y = to_categorical(y)
+    for train_index, test_index in logo.split(X, y, groups):
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+        model = create_model(KerasClassifier(build_fn=baseline_model, input_dim=X.shape[1],
+                                             epochs=10, batch_size=256, verbose=2,
+                                             validation_data=(X_test, y_test)))
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        y_test = np.argmax(y_test, axis=1)
+        precision.append(precision_score(y_test, y_pred, average='weighted'))
+        recall.append(recall_score(y_test, y_pred, average='weighted'))
+        if i % 10 == 0:
+            print('modelos sobre usuario ', i, ' finalizado.')
+        i += 1
+    return precision, recall
 
 
 def shift_hours(df, n, modelType):
@@ -185,3 +216,20 @@ def makeDummies(df):
     dummies = pd.get_dummies(dfcopy.select_dtypes(include='category'))
     dfcopy.drop(categorical_cols, inplace=True, axis=1)
     return pd.concat([dfcopy, dummies], axis=1, sort=False)
+
+def baseline_model(input_dim):
+# Initialize the constructor
+    model = Sequential([
+    Dense(256, activation='relu', input_dim=input_dim),
+    Dropout(.8),
+    Dense(128, activation='relu'),
+    Dropout(.5),
+    Dense(64, activation='relu'),
+    Dropout(.5),
+    Dense(2, activation='softmax')
+    ])
+    model.compile(loss='binary_crossentropy',
+                  optimizer='adam',
+                  metrics=['binary_accuracy'])
+    return model
+
