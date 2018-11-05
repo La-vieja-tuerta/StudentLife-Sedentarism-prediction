@@ -60,12 +60,14 @@ hay 14420.575126 en promedio de muestros de actividad por hora
 '''
 from sklearn.preprocessing import LabelEncoder
 from utilfunction import *
+from sklearn import cluster
+import math
 
 # prepare activity data
 sdata = pd.read_csv('processing/activity.csv')
 sdata.columns = ['time', 'activityId', 'userId']
-sdata['time'] = pd.to_datetime(sdata['time'], unit='s').dt.floor('h')
 sdata = sdata.loc[sdata['activityId'] != 3]
+sdata['time'] = pd.to_datetime(sdata['time'], unit='s').dt.floor('h')
 sdata['slevel'] = sdata['activityId'] == 0
 
 # sedentary mean
@@ -135,13 +137,26 @@ s.loc[s['unknownAudioCount'].isna(), 'unknownAudioCount'] = 0
 # latitude and longitude mean and std
 gpsdata = pd.read_csv('processing/gps.csv')
 gpsdata['time'] = pd.to_datetime(gpsdata['time'], unit='s')
-gpsdata['time'] = sdata['time'].dt.floor('h')
+gpsdata['time'] = gpsdata['time'].dt.floor('h')
 
-#s['latitudeMean'] = gpsdata.groupby(['userId', 'time'])['latitude'].mean()
-#s['latitudeStd'] = gpsdata.groupby(['userId', 'time'])['latitude'].std()
-#s['longitudeMean'] = gpsdata.groupby(['userId', 'time'])['longitude'].mean()
-#s['longitudeStd'] = gpsdata.groupby(['userId', 'time'])['longitude'].std()
-#s['travelstate'] = gpsdata.groupby(['userId', 'time'])['travelstate'].apply(Most_Common)
+kmeans = cluster.KMeans(n_clusters=30)
+kmeans.fit(gpsdata[['latitude', 'longitude']].values)
+gpsdata['place'] = kmeans.predict(gpsdata[['latitude', 'longitude']])
+s['latitudeStd'] = gpsdata.groupby(['userId', 'time'])['latitude'].std()
+s['longitudeStd'] = gpsdata.groupby(['userId', 'time'])['longitude'].std()
+s['place'] = gpsdata.groupby(['userId', 'time'])['place'].apply(Most_Common)
+
+
+for index, t in s.iterrows():
+    for column in ['latitudeStd', 'longitudeStd', 'place']:
+        if math.isnan(t[column]):
+            try:
+                s.at[index, column] = s.at[(index[0], index[1] + pd.DateOffset(hours=-1)), column]
+            except KeyError:
+                print( 'no existe {0}'.format( (index[0], index[1])))
+
+
+
 
 # prepare charge data
 chargedata = pd.read_csv('processing/phonecharge.csv')

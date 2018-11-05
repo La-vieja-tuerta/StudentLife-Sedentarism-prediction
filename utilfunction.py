@@ -183,7 +183,8 @@ def shift_hours(df, n, modelType):
 def create_model(clf):
     numeric_cols = ['cantConversation', 'wifiChanges',
                     'stationaryCount', 'walkingCount', 'runningCount', 'silenceCount', 'voiceCount', 'noiseCount',
-                    'unknownAudioCount','remainingminutes', 'pastminutes']
+                    'unknownAudioCount','remainingminutes', 'pastminutes'
+                    ,'latitude', 'longitude']
 
     transformer = ColumnTransformer([('scale', StandardScaler(), numeric_cols)],
                                     remainder='passthrough')
@@ -208,10 +209,10 @@ def METcalculation(df, metValues=(1.2,3.5,8)):
 
 def makeDummies(df):
     dfcopy = df.copy()
-    categorical_cols = ['partofday', 'dayofweek', 'activitymajor']
+    categorical_cols = ['partofday', 'dayofweek', 'activitymajor','place']
     for col in categorical_cols:
         dfcopy[col] = dfcopy[col].astype('category')
-    for col in set(set(df.columns) - set(categorical_cols)):
+    for col in set(df.columns) - set(categorical_cols):
         dfcopy[col] = dfcopy[col].astype('float')
     dummies = pd.get_dummies(dfcopy.select_dtypes(include='category'))
     dfcopy.drop(categorical_cols, inplace=True, axis=1)
@@ -233,3 +234,6 @@ def baseline_model(input_dim):
                   metrics=['binary_accuracy'])
     return model
 
+def delete_user(df,user):
+    dfcopy = df.copy()
+    return dfcopy.loc[df.index.get_level_values(0)!=user]

@@ -3,10 +3,10 @@
 from utilfunction import *
 import matplotlib.pyplot as plt
 import seaborn as sns
-df = pd.read_pickle('sedentarismwithoutdummies')
+df = pd.read_pickle('sedentarisdata.pkl')
 df = METcalculation(df)
 df['slevel'] = df['slevel'].astype('float')
-
+df.shape
 plt.close()
 
 dfresult = pd.DataFrame(df.groupby(['dayofweek','hourofday'], as_index=False)['slevel'].mean())
