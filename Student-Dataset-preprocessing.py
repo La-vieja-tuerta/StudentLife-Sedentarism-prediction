@@ -82,7 +82,12 @@ s.loc[(s['hourofday'] >= 12) & (s['hourofday'] < 17), 'partofday'] = 'afternoon'
 s.loc[(s['hourofday'] >= 17) & (s['hourofday'] < 21), 'partofday'] = 'evening'
 
 # dayofweek
-s['dayofweek'] = 'weekday'
+#s.loc[s.index.get_level_values('time').dayofweek == 0, 'dayofweek'] = 'saturday'
+s['dayofweek'] = 'monday'
+s.loc[s.index.get_level_values('time').dayofweek == 1, 'dayofweek'] = 'tuesday'
+s.loc[s.index.get_level_values('time').dayofweek == 2, 'dayofweek'] = 'wednesday'
+s.loc[s.index.get_level_values('time').dayofweek == 3, 'dayofweek'] = 'thursday'
+s.loc[s.index.get_level_values('time').dayofweek == 4, 'dayofweek'] = 'friday'
 s.loc[s.index.get_level_values('time').dayofweek == 5, 'dayofweek'] = 'saturday'
 s.loc[s.index.get_level_values('time').dayofweek == 6, 'dayofweek'] = 'sunday'
 
@@ -139,16 +144,25 @@ gpsdata = pd.read_csv('processing/gps.csv')
 gpsdata['time'] = pd.to_datetime(gpsdata['time'], unit='s')
 gpsdata['time'] = gpsdata['time'].dt.floor('h')
 
-kmeans = cluster.KMeans(n_clusters=30)
+kmeans = cluster.KMeans(n_clusters=15)
 kmeans.fit(gpsdata[['latitude', 'longitude']].values)
 gpsdata['place'] = kmeans.predict(gpsdata[['latitude', 'longitude']])
+s['latitudeMean'] = gpsdata.groupby(['userId', 'time'])['latitude'].mean()
+s['longitudeMean'] = gpsdata.groupby(['userId', 'time'])['longitude'].mean()
+
+s['latitudeMedian'] = gpsdata.groupby(['userId', 'time'])['latitude'].median()
+s['longitudeMedian'] = gpsdata.groupby(['userId', 'time'])['longitude'].median()
+
 s['latitudeStd'] = gpsdata.groupby(['userId', 'time'])['latitude'].std()
 s['longitudeStd'] = gpsdata.groupby(['userId', 'time'])['longitude'].std()
 s['place'] = gpsdata.groupby(['userId', 'time'])['place'].apply(Most_Common)
 
 
 for index, t in s.iterrows():
-    for column in ['latitudeStd', 'longitudeStd', 'place']:
+    for column in ['latitudeMean', 'longitudeMean',
+                   'latitudeMedian','longitudeMedian',
+                   'latitudeStd','longitudeStd',
+                   'place']:
         if math.isnan(t[column]):
             try:
                 s.at[index, column] = s.at[(index[0], index[1] + pd.DateOffset(hours=-1)), column]
@@ -326,9 +340,10 @@ s.loc[s['wifiChanges'].isna(), 'wifiChanges'] = 0
 #a = wifidataIn.groupby(['userId', 'time'])['location']
 #wifidataNear = wifidata.loc[wifidata['location'].str.startswith('near')]
 
-s.to_pickle('sedentarisdata.pkl')
+s.to_pickle('sedentarismdata.pkl')
 
 #swithdummies.to_pickle('sedentarism.pkl')
 #checkpoint
 #s.to_csv('processing/sedentaryBehaviour.csv')
 #s.to_pickle('sedentarism.pkl')
+

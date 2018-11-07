@@ -14,7 +14,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout
 from keras.wrappers.scikit_learn import KerasClassifier
 
-
+from sklearn.metrics import confusion_matrix
 from numpy.random import seed
 seed(7)
 
@@ -52,8 +52,8 @@ def get_X_y_regression(df):
 def makeSedentaryClasses(df):
     dfcopy = df.copy()
     dfcopy['sclass'] = ''
-    dfcopy.loc[df['slevel'] >= 1.5, 'sclass'] = 0  # 'sedentary'
-    dfcopy.loc[df['slevel'] < 1.5, 'sclass'] = 1  # 'not sedentary'
+    dfcopy.loc[df['slevel'] >= 1.5, 'sclass'] = 0.0  # 'sedentary'
+    dfcopy.loc[df['slevel'] < 1.5, 'sclass'] = 1.0  # 'not sedentary'
     dfcopy['actualClass'] = dfcopy['sclass']
     dfcopy.drop(['slevel'], inplace=True, axis=1)
     return dfcopy
@@ -150,7 +150,7 @@ def live_one_out_classificationNN(df, withActualClass):
         X_train, X_test = X.iloc[train_index], X.iloc[test_index]
         y_train, y_test = y[train_index], y[test_index]
         model = create_model(KerasClassifier(build_fn=baseline_model, input_dim=X.shape[1],
-                                             epochs=10, batch_size=256, verbose=2,
+                                             epochs=10, batch_size=256, verbose=0,
                                              validation_data=(X_test, y_test)))
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
@@ -176,15 +176,12 @@ def shift_hours(df, n, modelType):
             if modelType == 'regression':
                 dfcopy.at[(ind[0], ind[1]), 'slevel'] = np.nan
             elif modelType == 'classification':
-                dfcopy.at[(ind[0], ind[1]), 'sclass'] = None
+                dfcopy.at[(ind[0], ind[1]), 'sclass'] = np.nan
+    print(dfcopy.isna().sum())
     dfcopy.dropna(inplace=True)
     return dfcopy
 
 def create_model(clf):
-    numeric_cols = ['cantConversation', 'wifiChanges',
-                    'stationaryCount', 'walkingCount', 'runningCount', 'silenceCount', 'voiceCount', 'noiseCount',
-                    'unknownAudioCount','remainingminutes', 'pastminutes'
-                    ,'latitude', 'longitude']
 
     transformer = ColumnTransformer([('scale', StandardScaler(), numeric_cols)],
                                     remainder='passthrough')
@@ -209,7 +206,7 @@ def METcalculation(df, metValues=(1.2,3.5,8)):
 
 def makeDummies(df):
     dfcopy = df.copy()
-    categorical_cols = ['partofday', 'dayofweek', 'activitymajor','place']
+    categorical_cols = ['partofday', 'dayofweek', 'activitymajor', 'place']
     for col in categorical_cols:
         dfcopy[col] = dfcopy[col].astype('category')
     for col in set(df.columns) - set(categorical_cols):
@@ -227,7 +224,7 @@ def baseline_model(input_dim):
     Dropout(.5),
     Dense(64, activation='relu'),
     Dropout(.5),
-    Dense(2, activation='softmax')
+    Dense(1, activation='sigmoid')
     ])
     model.compile(loss='binary_crossentropy',
                   optimizer='adam',
@@ -235,5 +232,4 @@ def baseline_model(input_dim):
     return model
 
 def delete_user(df,user):
-    dfcopy = df.copy()
-    return dfcopy.loc[df.index.get_level_values(0)!=user]
+    return df.copy().loc[df.index.get_level_values(0)!=user]

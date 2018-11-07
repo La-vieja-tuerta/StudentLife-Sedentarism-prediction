@@ -9,12 +9,11 @@ from sklearn.model_selection import cross_validate
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.tree import DecisionTreeClassifier
 from keras.wrappers.scikit_learn import KerasClassifier
-
-from numpy.random import seed
-seed(7)
+import numpy
+numpy.random.seed(7)
 
 def show_metric(title, ylabel, labels, data):
-    users = np.arange(1, 50)
+    users = np.arange(1, 49)
     plt.close()
     for d in data:
         plt.scatter(users, d)
@@ -35,34 +34,61 @@ clf2 = AdaBoostClassifier(DecisionTreeClassifier(max_depth=4),
                          algorithm="SAMME",
                          n_estimators=200)
 model = create_model(clf)
-df = pd.read_pickle('sedentarisdata.pkl')
-df.drop(['audiomajor', 'hourofday'], axis=1, inplace=True)
-df = makeDummies(df)
+df = pd.read_pickle('sedentarismdata.pkl')
+df = delete_user(df,52)
 df = METcalculation(df)
 df = makeSedentaryClasses(df)
+df = makeDummies(df)
 df = shift_hours(df,1, 'classification')
+df.drop(['audiomajor', 'hourofday', 'stationaryCount', 'walkingCount', 'runningCount',
+         'latitudeMean', 'longitudeMean',
+         'latitudeMedian', 'longitudeMedian',
+         'latitudeStd', 'longitudeStd'
+         ], axis=1, inplace=True)
 
-#precisionLOGOwithACNN, recallLOGOwithACNN = live_one_out_classificationNN(df, True)
-precisionLOGOwithAC, recallLOGOwithAC = live_one_out_classification(df, model, True)
+precisionLOGOwithACNN, recallLOGOwithACNN = live_one_out_classificationNN(df, True)
 precisionPUwithAC, recallPUwithAC = per_user_classification(df, model, True)
-
 precisionPUwithoutAC, recallPUwithoutAC = per_user_classification(df, model, False)
-#precisionLOGOwithoutACNN, recallLOGOwithoutACNN = live_one_out_classificationNN(df, False)
+
+precisionLOGOwithoutACNN, recallLOGOwithoutACNN = live_one_out_classificationNN(df, False)
+precisionLOGOwithAC, recallLOGOwithAC = live_one_out_classification(df, model, True)
 precisionLOGOwithoutAC, recallLOGOwithoutAC = live_one_out_classification(df, model, False)
 
-show_metric('Model precision with NN',
+show_metric('Model precision',
             'Precision',
             ['precisionLOGOwithAC', 'precisionLOGOwithoutAC'],
             [precisionLOGOwithAC, precisionLOGOwithoutAC])
 
-show_metric('Model recall with NN',
+show_metric('Model recall',
             'Recall',
             ['recallLOGOwithAC', 'recallLOGOwithoutAC'],
             [recallLOGOwithAC, recallLOGOwithoutAC])
 
-show_metric('LOGO comparison bw LR and NN wo AC',
+show_metric('Model precision',
             'Precision',
-            ['LR', 'NN'],
-            [precisionLOGOwithoutACNN, precisionLOGOwithoutAC])
+            ['precisionPUwithAC', 'precisionPUwithoutAC'],
+            [precisionPUwithAC, precisionPUwithoutAC])
+
+show_metric('Model recall',
+            'Recall',
+            ['recallPUwithAC', 'recallPUwithoutAC'],
+            [recallPUwithAC, recallPUwithoutAC])
+
+
+
+show_metric('Model precision',
+            'Precision',
+            ['precisionLOGOwithAC', 'recallLOGOwithACNN'],
+            [precisionLOGOwithACNN, recallLOGOwithACNN])
+
+show_metric('Model recall',
+            'Recall',
+            ['recallLOGOwithAC', 'recallLOGOwithoutAC'],
+            [recallLOGOwithACNN, recallLOGOwithoutAC])
+
+print(np.mean(precisionLOGOwithAC))
+print(np.mean(precisionLOGOwithoutAC))
+print(np.mean(precisionPUwithAC))
+print(np.mean(precisionPUwithoutAC))
 
 
