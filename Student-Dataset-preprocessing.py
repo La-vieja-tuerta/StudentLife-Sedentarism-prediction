@@ -156,13 +156,17 @@ s['longitudeMedian'] = gpsdata.groupby(['userId', 'time'])['longitude'].median()
 s['latitudeStd'] = gpsdata.groupby(['userId', 'time'])['latitude'].std()
 s['longitudeStd'] = gpsdata.groupby(['userId', 'time'])['longitude'].std()
 s['place'] = gpsdata.groupby(['userId', 'time'])['place'].apply(Most_Common)
+s['distanceTraveld'] = gpsdata.groupby( by= ['userId', pd.Grouper(key='time', freq='H')])['latitude','longitude'].\
+    apply(get_total_harversine_distance_traveled)
 
+
+#calculo la distancia total recorrida por el usuario en una hora
 
 for index, t in s.iterrows():
     for column in ['latitudeMean', 'longitudeMean',
                    'latitudeMedian','longitudeMedian',
                    'latitudeStd','longitudeStd',
-                   'place']:
+                   'place','distanceTraveled']:
         if math.isnan(t[column]):
             try:
                 s.at[index, column] = s.at[(index[0], index[1] + pd.DateOffset(hours=-1)), column]

@@ -13,6 +13,7 @@ from keras.utils import to_categorical
 from keras.models import Sequential
 from keras.layers import Dense, Dropout
 from keras.wrappers.scikit_learn import KerasClassifier
+from haversine import haversine
 
 from sklearn.metrics import confusion_matrix
 from numpy.random import seed
@@ -182,7 +183,12 @@ def shift_hours(df, n, modelType):
     return dfcopy
 
 def create_model(clf):
-
+    numeric_cols = ['cantConversation', 'wifiChanges',
+                    'silenceCount', 'voiceCount', 'noiseCount', 'unknownAudioCount',
+                    'remainingminutes', 'pastminutes', 'distancetraveled']
+    #                'latitudeMean', 'longitudeMean',
+    #                'latitudeMedian', 'longitudeMedian',
+    #                'latitudeStd', 'longitudeStd']
     transformer = ColumnTransformer([('scale', StandardScaler(), numeric_cols)],
                                     remainder='passthrough')
     return make_pipeline(transformer, clf)
@@ -233,3 +239,13 @@ def baseline_model(input_dim):
 
 def delete_user(df,user):
     return df.copy().loc[df.index.get_level_values(0)!=user]
+
+def get_total_harversine_distance_traveled(x):
+    d = 0.0
+    samples = x.shape[0]
+    for i in np.arange(0,samples):
+        try:
+            d += haversine(x.iloc[i,:].values, x.iloc[i+1,:].values)
+        except IndexError:
+            pass
+    return d
