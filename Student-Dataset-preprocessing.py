@@ -160,6 +160,7 @@ s['distanceTraveld'] = gpsdata.groupby( by= ['userId', pd.Grouper(key='time', fr
     apply(get_total_harversine_distance_traveled)
 
 
+
 #calculo la distancia total recorrida por el usuario en una hora
 
 for index, t in s.iterrows():

@@ -47,8 +47,8 @@ def get_user_data(data, userId):
 
 def get_X_y_regression(df):
     dfcopy = df.copy()
-    features = [col for col in dfcopy.columns if 'isSedentary' != col]
-    return dfcopy[features].reset_index(drop=True), dfcopy['isSedentary'].reset_index(drop=True)
+    features = [col for col in dfcopy.columns if 'slevel' != col]
+    return dfcopy[features].reset_index(drop=True), dfcopy['slevel'].reset_index(drop=True)
 
 def makeSedentaryClasses(df):
     dfcopy = df.copy()
@@ -185,10 +185,10 @@ def shift_hours(df, n, modelType):
 def create_model(clf):
     numeric_cols = ['cantConversation', 'wifiChanges',
                     'silenceCount', 'voiceCount', 'noiseCount', 'unknownAudioCount',
-                    'remainingminutes', 'pastminutes', 'distancetraveled']
-    #                'latitudeMean', 'longitudeMean',
-    #                'latitudeMedian', 'longitudeMedian',
-    #                'latitudeStd', 'longitudeStd']
+                    'remainingminutes', 'pastminutes', 'distancetraveled',
+                    'latitudeMean', 'longitudeMean',
+                    'latitudeMedian', 'longitudeMedian',
+                    'latitudeStd', 'longitudeStd']
     transformer = ColumnTransformer([('scale', StandardScaler(), numeric_cols)],
                                     remainder='passthrough')
     return make_pipeline(transformer, clf)
