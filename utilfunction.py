@@ -8,7 +8,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import LogisticRegression
 import numpy as np
 from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 from keras.utils import to_categorical
 from keras.models import Sequential
 from keras.layers import Dense, Dropout
@@ -184,35 +184,26 @@ def shift_hours(df, n, modelType):
 
 def create_model(clf):
     numeric_cols = ['cantConversation', 'wifiChanges',
-                    'silenceCount', 'voiceCount', 'noiseCount', 'unknownAudioCount',
-                    'remainingminutes', 'pastminutes', 'distancetraveled',
-                    'latitudeMean', 'longitudeMean',
-                    'latitudeMedian', 'longitudeMedian',
-                    'latitudeStd', 'longitudeStd']
-    transformer = ColumnTransformer([('scale', StandardScaler(), numeric_cols)],
+                    'silenceLevel', 'voiceLevel', 'noiseLevel',
+                    'remainingminutes', 'pastminutes',
+                    'distanceTraveled', 'locationVariance']
+    transformer = ColumnTransformer([('scale', MinMaxScaler(), numeric_cols)],
                                     remainder='passthrough')
     return make_pipeline(transformer, clf)
 
-# sumar, sacar promadio, multiplicar promedio por MET de cada actividad
-#METS por actividad:
-#standing: 1.2
-#walking: 3,5
-#running: 8
 
-def METcalculation(df, metValues=(1.2,3.5,8)):
+def METcalculation(df, metValues=(1.3,5,8.3)):
     dfcopy = df.copy()
-    totalLogs = dfcopy['stationaryCount'] + dfcopy['walkingCount'] + dfcopy['runningCount']
-    stationary = dfcopy['stationaryCount']
-    walking = dfcopy['walkingCount']
-    running = dfcopy['runningCount']
-    metLevel = (stationary * metValues[0] + walking * metValues[1] + running * metValues[2]) / totalLogs
+    metLevel = (dfcopy['stationaryLevel'] * metValues[0] +
+                dfcopy['walkingLevel'] * metValues[1] +
+                dfcopy['runningLevel'] * metValues[2])
     dfcopy['slevel'] = metLevel
     return dfcopy
 
 
 def makeDummies(df):
     dfcopy = df.copy()
-    categorical_cols = ['partofday', 'dayofweek', 'activitymajor', 'place']
+    categorical_cols = ['partofday', 'dayofweek', 'activitymajor']
     for col in categorical_cols:
         dfcopy[col] = dfcopy[col].astype('category')
     for col in set(df.columns) - set(categorical_cols):
@@ -221,7 +212,7 @@ def makeDummies(df):
     dfcopy.drop(categorical_cols, inplace=True, axis=1)
     return pd.concat([dfcopy, dummies], axis=1, sort=False)
 
-def baseline_model(input_dim):
+def baseline_model(input_dim=[None,28]):
 # Initialize the constructor
     model = Sequential([
     Dense(256, activation='relu', input_dim=input_dim),
