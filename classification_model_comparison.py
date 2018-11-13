@@ -32,7 +32,7 @@ def show_metric(title, ylabel, labels, data):
 estimator = KerasClassifier(build_fn=baseline_model, epochs=10, batch_size=256, verbose=2)
 
 clf = LogisticRegression(solver='liblinear', max_iter=400)
-model = create_model(estimator)
+model = create_model(clf)
 df = pd.read_pickle('sedentarismdata.pkl')
 df = delete_user(df,52)
 df = METcalculation(df)
@@ -42,49 +42,14 @@ df = shift_hours(df,1, 'classification')
 df.drop(['hourofday'],
         axis=1, inplace=True)
 #stationaryLevel, walkingLevel, runningLevel
-precisionLOGOwithACNN, recallLOGOwithACNN = live_one_out_classificationNN(df, True)
-precisionPUwithAC, recallPUwithAC = per_user_classification(df, model, True)
-precisionPUwithoutAC, recallPUwithoutAC = per_user_classification(df, model, False)
+f1_p = per_user_classification(df, model, True)
 
-precisionLOGOwithoutACNN, recallLOGOwithoutACNN = live_one_out_classificationNN(df, False)
-precisionLOGOwithAC, recallLOGOwithAC = live_one_out_classification(df, model, True)
-precisionLOGOwithoutAC, recallLOGOwithoutAC = live_one_out_classification(df, model, False)
+f1_imp = live_one_out_classification(df, model, True)
 
 show_metric('Model precision',
             'Precision',
             ['precisionLOGOwithAC', 'precisionLOGOwithoutAC'],
-            [precisionLOGOwithAC, precisionPUwithAC])
+            [f1_p, f1_imp])
 
-show_metric('Model recall',
-            'Recall',
-            ['recallLOGOwithAC', 'recallLOGOwithoutAC'],
-            [recallLOGOwithAC, recallPUwithAC])
-
-show_metric('Model precision',
-            'Precision',
-            ['precisionPUwithAC', 'precisionPUwithoutAC'],
-            [precisionPUwithAC, precisionPUwithoutAC])
-
-show_metric('Model recall',
-            'Recall',
-            ['recallPUwithAC', 'recallPUwithoutAC'],
-            [recallPUwithAC, recallPUwithoutAC])
-
-
-
-show_metric('Model precision',
-            'Precision',
-            ['precisionLOGOwithAC', 'recallLOGOwithACNN'],
-            [precisionLOGOwithACNN, recallLOGOwithACNN])
-
-show_metric('Model recall',
-            'Recall',
-            ['recallLOGOwithAC', 'recallLOGOwithoutAC'],
-            [recallLOGOwithACNN, recallLOGOwithoutAC])
-
-print(np.mean(precisionLOGOwithAC))
-print(np.mean(precisionLOGOwithoutAC))
-print(np.mean(precisionPUwithAC))
-print(np.mean(precisionPUwithoutAC))
 
 

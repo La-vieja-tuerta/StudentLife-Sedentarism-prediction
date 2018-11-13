@@ -46,8 +46,8 @@ def show_graph(data, metric, user=-1):
     plt.show()
     plt.close()
 
-show_graph(df,'Mean', 46)
-show_graph(df, 'Standard Deviation', 46)
+show_graph(df,'Mean', 4)
+show_graph(df, 'Standard Deviation', 4)
 
 
 user = get_user_data(df, 41)

@@ -2,7 +2,7 @@ from collections import Counter
 import pandas as pd
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import cross_val_score, cross_validate
-from sklearn.metrics import mean_squared_error, precision_score, recall_score
+from sklearn.metrics import mean_squared_error, precision_score, recall_score, f1_score
 from sklearn.model_selection import LeaveOneGroupOut
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import LogisticRegression
@@ -103,25 +103,22 @@ def live_one_out_regression(df, model):
 def per_user_classification(df, model, withActualClass):
     print('per_user_classification')
     dfcopy = df.copy()
-    scoring = ['precision_weighted', 'recall_weighted']
-    precision = []
-    recall = []
+    scoring = ['f1_weighted']
+    f1 = []
     kfold = StratifiedKFold(n_splits=10, random_state=seed)
     for userid in df.index.get_level_values(0).drop_duplicates():
         X, y = get_X_y_classification(get_user_data(dfcopy, userid), withActualClass)
         results = cross_validate(model, X, y, cv=kfold, scoring=scoring)
-        precision.append(results['test_precision_weighted'].mean())
-        recall.append(results['test_recall_weighted'].mean())
+        f1.append(results['test_f1_weighted'].mean())
         if userid % 10 == 0:
             print('modelos sobre usuario ', userid, ' finalizado.')
-    return precision, recall
+    return f1
 
 def live_one_out_classification(df, model, withActualClass):
     dfcopy = df.copy()
     print('live_one_out_classification')
     i = 0
-    precision = []
-    recall = []
+    f1 = []
     logo = LeaveOneGroupOut()
     groups = df.index.get_level_values(0)
     X, y = get_X_y_classification(dfcopy, withActualClass)
@@ -130,12 +127,11 @@ def live_one_out_classification(df, model, withActualClass):
         y_train, y_test = y.iloc[train_index], y.iloc[test_index]
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
-        precision.append(precision_score(y_test, y_pred, average='weighted'))
-        recall.append(recall_score(y_test, y_pred, average='weighted'))
+        f1.append(f1_score(y_test, y_pred, average='weighted'))
         if i % 10 == 0:
             print('modelos sobre usuario ', i, ' finalizado.')
         i += 1
-    return precision, recall
+    return f1
 
 def live_one_out_classificationNN(df, withActualClass):
     dfcopy = df.copy()
