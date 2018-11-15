@@ -208,15 +208,11 @@ def makeDummies(df):
     dfcopy.drop(categorical_cols, inplace=True, axis=1)
     return pd.concat([dfcopy, dummies], axis=1, sort=False)
 
-def baseline_model(input_dim=[None,28]):
+def baseline_model():
 # Initialize the constructor
     model = Sequential([
-    Dense(256, activation='relu', input_dim=input_dim),
-    Dropout(.8),
-    Dense(128, activation='relu'),
-    Dropout(.5),
-    Dense(64, activation='relu'),
-    Dropout(.5),
+    Dense(32, activation='relu', input_dim=31),
+    Dense(32, activation='relu'),
     Dense(1, activation='sigmoid')
     ])
     model.compile(loss='binary_crossentropy',
