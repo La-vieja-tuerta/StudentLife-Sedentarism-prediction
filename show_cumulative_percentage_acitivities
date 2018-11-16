@@ -1,0 +1,57 @@
+from utilfunction import *
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+
+df = pd.read_pickle('sedentarismdata.pkl')
+df = delete_user(df,52)
+df = METcalculation(df)
+df = makeSedentaryClasses(df)
+
+df = makeDummies(df)
+df = shift_hours(df,1, 'classification')
+df.drop(['hourofday'],
+        axis=1, inplace=True)
+
+
+
+
+xlabels = mdates.date2num(pd.date_range("2013/4/08 00:00:00",periods=167, freq='h'))
+
+user = get_user_data(df,8)
+user = user.loc[(user.index.get_level_values(1)>"2013/4/08 00:00:00") &
+                (user.index.get_level_values(1)<"2013/4/15 00:00")]
+r = user['walkingLevel'].values + user['runningLevel'].values
+w = user['walkingLevel'].values
+s = 1 - user['stationaryLevel'].values
+x = np.arange(0,user.shape[0])
+
+plt.close()
+
+fig = plt.figure()
+ax = fig.add_subplot(111)
+
+#ax.plot_date(xlabels, w, c='yellow', alpha=.4, fmt='-')
+#ax.plot_date(xlabels, r, c='red', alpha=.7,fmt='-')
+ax.fill_between(xlabels,w,0, facecolor='yellow', alpha=1, label='Walking')
+ax.fill_between(xlabels,w,r, facecolor='red', alpha=1, label='Running')
+ax.fill_between(xlabels,r,1, facecolor='black', alpha=.4, label='Stationary')
+
+fig.figzise=(2331,2)
+#ax.format_xdata = mdates.AutoDateFormatter()
+ax.set_ylim(0,1)
+ax.set_xlim(xlabels[0],xlabels[-1])
+#ax.autoscale_view()
+ax.xaxis.set_major_locator(mdates.DayLocator())
+ax.xaxis.set_major_formatter(mdates.DateFormatter('%A'))
+ax.xaxis.set_minor_locator(mdates.HourLocator())
+
+ax.yaxis.set_major_locator(plt.MultipleLocator(0.1))
+fig.autofmt_xdate()
+ax.grid(True)
+ax.set_ylabel('Cumulative activity percentage')
+ax.set_xlabel('Time')
+ax.set_title(' One week ctivity of user 8')
+ax.legend(loc='upper right')
+plt.show()
+#https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior
+#plt.figure(figsize=(13,5))
