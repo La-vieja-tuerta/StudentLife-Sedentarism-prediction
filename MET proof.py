@@ -4,7 +4,9 @@ from utilfunction import *
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import LabelEncoder
-
+sns.set()
+sns.set_style("ticks")
+sns.despine()
 df = pd.read_pickle('sedentarismdata.pkl')
 df = METcalculation(df)
 df['slevel'] = df['slevel'].astype('float')
@@ -36,7 +38,7 @@ def show_graph(data, metric, user=-1):
         userdata = userdata.std()
         userdata = userdata.reset_index()
         userdata = userdata.pivot(index='dayofweek', values='slevel', columns='hourofday')
-        sns.heatmap(userdata, cmap='autumn_r')
+        sns.heatmap(userdata, vmin=0, vmax=1, cmap='autumn_r')
     plt.title('{0} activity of user {1}'.format(metric, user))
     plt.ylabel('Day of week')
     plt.xlabel('Hour of day')
@@ -44,23 +46,24 @@ def show_graph(data, metric, user=-1):
     plt.xticks(np.arange(0.5,24.5),get_hour_labels(), rotation='vertical')
 
     plt.show()
-    plt.close()
 
 show_graph(df,'Mean', 4)
-show_graph(df, 'Standard Deviation', 4)
+show_graph(df,  'Standard Deviation', 4)
 
 
+
+
+show_graph(df,'Mean')
+show_graph(df, 'Stand   ard Deviation')
+for u in df.index.get_level_values(0).drop_duplicates():
+    show_graph(df,'Mean', u)
+    show_graph(df, 'Standard Deviation', u)
+
+"""
 user = get_user_data(df, 41)
 for m in np.arange(3,6):
     d = user.loc[user.index.get_level_values(1).month==m]
     print(d.shape)
     show_graph(d, 'Mean')
     show_graph(d, 'Standard Deviation')
-
-
-
-show_graph(df,'Mean')
-show_graph(df, 'Standard Deviavition')
-for u in df.index.get_level_values(0).drop_duplicates():
-    show_graph(df,'Mean', u)
-    show_graph(df, 'Standard Deviavition', u)
+"""
