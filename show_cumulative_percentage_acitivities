@@ -8,5 +8,5 @@ df = delete_user(df,52)
 df = METcalculation(df)
 df = makeSedentaryClasses(df)
 df = makeDummies(df)
-show_user_activity(df,8,"2013/4/15 00:00:00", "2013/4/22 00:00:00")
+show_user_activity(df,39,"2013/4/1 00:00:00", "2013/5/1 00:00:00")
 

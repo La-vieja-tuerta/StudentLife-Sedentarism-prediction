@@ -4,9 +4,9 @@ from utilfunction import *
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import LabelEncoder
-sns.set()
-sns.set_style("ticks")
-sns.despine()
+#sns.set()
+#sns.set_style("ticks")
+#sns.despine()
 df = pd.read_pickle('sedentarismdata.pkl')
 df = METcalculation(df)
 df['slevel'] = df['slevel'].astype('float')
@@ -47,8 +47,8 @@ def show_graph(data, metric, user=-1):
 
     plt.show()
 
-show_graph(df,'Mean', 4)
-show_graph(df,  'Standard Deviation', 4)
+show_graph(df,'Mean', 39)
+show_graph(df,  'Standard Deviation', 39)
 
 
 

@@ -11,7 +11,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import MinMaxScaler
 from keras.utils import to_categorical
 from keras.models import Sequential
-from keras.layers import Dense, Dropout
+from keras.layers import Dense, BatchNormalization,Activation
 from keras.wrappers.scikit_learn import KerasClassifier
 from haversine import haversine
 
@@ -209,16 +209,25 @@ def makeDummies(df):
     return pd.concat([dfcopy, dummies], axis=1, sort=False)
 
 def baseline_model():
-# Initialize the constructor
-    model = Sequential([
-    Dense(32, activation='relu', input_dim=31),
-    Dense(32, activation='relu'),
+    estimator = Sequential([
+    Dense(256,input_dim=31,kernel_initializer='uniform', kernel_regularizer='l2',use_bias=False),
+    BatchNormalization(),
+    Activation('relu'),
+    Dense(128, kernel_initializer='uniform', kernel_regularizer='l2',use_bias=False),
+    BatchNormalization(),
+    Activation('relu'),
+    Dense(64, kernel_initializer='uniform',kernel_regularizer='l2',use_bias=False),
+    BatchNormalization(),
+    Activation('relu'),
+    Dense(32, kernel_initializer='uniform', kernel_regularizer='l2',use_bias=False),
+    BatchNormalization(),
+    Activation('relu'),
     Dense(1, activation='sigmoid')
     ])
-    model.compile(loss='binary_crossentropy',
+    estimator.compile(loss='binary_crossentropy',
                   optimizer='adam',
                   metrics=['binary_accuracy'])
-    return model
+    return estimator
 
 def delete_user(df,user):
     return df.copy().loc[df.index.get_level_values(0)!=user]
@@ -232,3 +241,7 @@ def get_total_harversine_distance_traveled(x):
         except IndexError:
             pass
     return d
+
+def delete_sleep_hours(df):
+    dfcopy = df.copy()
+    return dfcopy.loc[(dfcopy['slevel'] >= 1.5) | (dfcopy['partofday'] != 'night')]
