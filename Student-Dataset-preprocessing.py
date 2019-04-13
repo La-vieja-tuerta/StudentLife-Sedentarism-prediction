@@ -58,33 +58,46 @@ activitymajor
 
 hay 14420.575126 en promedio de muestros de actividad por hora
 '''
-import pandas as pd
-import numpy as np
 from sklearn.preprocessing import LabelEncoder
 from utilfunction import *
-
+from sklearn import cluster
+import math
+import matplotlib.pyplot as plt
+from scipy.stats import boxcox
 # prepare activity data
 sdata = pd.read_csv('processing/activity.csv')
 sdata.columns = ['time', 'activityId', 'userId']
-sdata['time'] = pd.to_datetime(sdata['time'], unit='s').dt.floor('h')
 sdata = sdata.loc[sdata['activityId'] != 3]
-sdata['slevel'] = sdata['activityId'] == 0
+sdata['time'] = pd.to_datetime(sdata['time'], unit='s').dt.floor('h')
+
+s = pd.DataFrame(index = pd.MultiIndex.from_product(iterables= [sdata['userId'].drop_duplicates(),
+                                                    pd.date_range('2013-03-27 04:00:00', '2013-06-01 3:00:00',
+                                                                  dtype='datetime64[ns]',
+                                                                  freq='h')],
+                                                    names = ['userId','time']))
+
+sdata = pd.concat([sdata, pd.get_dummies(sdata['activityId'],prefix='act')], axis=1, sort=False)
+
+#logs per activity
+s.loc[:, 'stationaryLevel'] = sdata.groupby(['userId', 'time'])['act_0'].mean()
+s.loc[:, 'walkingLevel'] = sdata.groupby(['userId', 'time'])['act_1'].mean()
+s.loc[:, 'runningLevel'] = sdata.groupby(['userId', 'time'])['act_2'].mean()
+s.dropna(how='all', inplace=True)
+s.fillna(0, inplace=True)
+
+# 2013-03-27 04:00:00
+# 2013-06-01 3:00:00
 
 # sedentary mean
-s = pd.DataFrame(sdata.groupby( by= ['userId', pd.Grouper(key='time', freq='H')] )['slevel'].mean())
-
 # hourofday
-s['hourofday'] = s.index.get_level_values('time').hour
 
-s['partofday'] = 'night'
-s.loc[(s['hourofday'] >= 5) & (s['hourofday'] < 12), 'partofday'] = 'morning'
-s.loc[(s['hourofday'] >= 12) & (s['hourofday'] < 17), 'partofday'] = 'afternoon'
-s.loc[(s['hourofday'] >= 17) & (s['hourofday'] < 21), 'partofday'] = 'evening'
+hours = s.index.get_level_values('time').hour
+s['hourSine'] = np.sin(2 * np.pi * hours/23.0)
+s['hourCosine'] = np.cos(2 * np.pi * hours/23.0)
 
 # dayofweek
-s['dayofweek'] = 'weekday'
-s.loc[s.index.get_level_values('time').dayofweek == 5, 'dayofweek'] = 'saturday'
-s.loc[s.index.get_level_values('time').dayofweek == 6, 'dayofweek'] = 'sunday'
+#s.loc[s.index.get_level_values('time').dayofweek == 0, 'dayofweek'] = 'saturday'
+s['dayofweek'] = s.index.get_level_values('time').dayofweek
 
 # activitymajor
 s['activitymajor'] = sdata.groupby(['userId', 'time'])['activityId'].apply(Most_Common)
@@ -92,36 +105,17 @@ s['activitymajor'] = sdata.groupby(['userId', 'time'])['activityId'].apply(Most_
 s['pastminutes'] = s.index.get_level_values(1).hour * 60 + s.index.get_level_values(1).minute
 s['remainingminutes'] = 24*60 - s['pastminutes']
 
-#logs per activity
-s.loc[:, 'stationaryCount'] = sdata.loc[sdata['activityId'] == 0, ].groupby(['userId', 'time'])['slevel'].count()
-s.loc[s['stationaryCount'].isna(), 'stationaryCount'] = 0
-
-s.loc[:, 'walkingCount'] = sdata.loc[sdata['activityId'] == 1, ].groupby(['userId', 'time'])['slevel'].count()
-s.loc[s['walkingCount'].isna(), 'walkingCount'] = 0
-
-s.loc[:, 'runningCount'] = sdata.loc[sdata['activityId'] == 2, ].groupby(['userId', 'time'])['slevel'].count()
-s.loc[s['runningCount'].isna(), 'runningCount'] = 0
-
-# plot
-'''
-s['slevel'] = s['slevel'].astype('float')
-df = pd.DataFrame(s.groupby(['dayofweek','hourofday'], as_index=False)['slevel'].mean()).pivot(index='hourofday', values='slevel', columns='dayofweek')
-sns.heatmap(df, vmax=1, cmap="YlGnBu")
-plt.show()
-'''
-
 # prepare audio data
 adata = pd.read_csv('processing/audio.csv')
 adata.columns = ['time', 'audioId', 'userId']
 adata['time'] = pd.to_datetime(adata['time'], unit='s')
-adata = adata[adata['audioId'] != 3]
 adata['time'] = adata['time'].dt.floor('h')
 
 # audiomajor
 # los siguientes usuarios poseen horas completas en las cuales no tienen ningun registro de audio
 # s[s['audiomajor'].isna()].groupby('userId')['audiomajor'].count()
-s['audiomajor'] = np.NaN
-s['audiomajor'] = adata.groupby(['userId', 'time'])['audioId'].apply(Most_Common).astype('int')
+#s['audiomajor'] = np.NaN
+#s['audiomajor'] = adata.groupby(['userId', 'time'])['audioId'].apply(Most_Common).astype('int')
 
 
 #0	Silence
@@ -129,29 +123,36 @@ s['audiomajor'] = adata.groupby(['userId', 'time'])['audioId'].apply(Most_Common
 #2	Noise
 #3	Unknow
 
-s.loc[:, 'silenceCount'] = adata.loc[adata['audioId'] == 0, ].groupby(['userId', 'time'])['audioId'].count()
-s.loc[s['silenceCount'].isna(), 'silenceCount'] = 0
+adata = pd.concat([adata, pd.get_dummies(adata['audioId'],prefix='act')], axis=1, sort=False)
 
-s.loc[:, 'voiceCount'] = adata.loc[adata['audioId'] == 1, ].groupby(['userId', 'time'])['audioId'].count()
-s.loc[s['voiceCount'].isna(), 'voiceCount'] = 0
+#logs per activity
+s.loc[:, 'silenceLevel'] = adata.groupby(['userId', 'time'])['act_0'].mean()
+s.loc[:, 'voiceLevel'] = adata.groupby(['userId', 'time'])['act_1'].mean()
+s.loc[:, 'noiseLevel'] = adata.groupby(['userId', 'time'])['act_2'].mean()
 
-s.loc[:, 'noiseCount'] = adata.loc[adata['audioId'] == 2, ].groupby(['userId', 'time'])['audioId'].count()
-s.loc[s['noiseCount'].isna(), 'noiseCount'] = 0
-
-s.loc[:, 'unknownAudioCount'] = adata.loc[adata['audioId'] == 1, ].groupby(['userId', 'time'])['audioId'].count()
-s.loc[s['unknownAudioCount'].isna(), 'unknownAudioCount'] = 0
-
-
+s.fillna(0, inplace=True)
 # latitude and longitude mean and std
 gpsdata = pd.read_csv('processing/gps.csv')
 gpsdata['time'] = pd.to_datetime(gpsdata['time'], unit='s')
-gpsdata['time'] = sdata['time'].dt.floor('h')
+gpsdata['time'] = gpsdata['time'].dt.floor('h')
 
-#s['latitudeMean'] = gpsdata.groupby(['userId', 'time'])['latitude'].mean()
-#s['latitudeStd'] = gpsdata.groupby(['userId', 'time'])['latitude'].std()
-#s['longitudeMean'] = gpsdata.groupby(['userId', 'time'])['longitude'].mean()
-#s['longitudeStd'] = gpsdata.groupby(['userId', 'time'])['longitude'].std()
-#s['travelstate'] = gpsdata.groupby(['userId', 'time'])['travelstate'].apply(Most_Common)
+
+#gpsdata.loc[gpsdata['travelstate'].isna() & gpsdata['speed']>0, 'travelstate'] = 'moving'
+#gpsdata.loc[gpsdata['travelstate'].isna(), 'travelstate'] = 'stationary'
+#kmeans = cluster.KMeans(n_clusters=15)
+#kmeans.fit(gpsdata[['latitude', 'longitude']].values)
+#gpsdata['place'] = kmeans.predict(gpsdata[['latitude', 'longitude']])
+
+
+#s['place'] = gpsdata.groupby(['userId', 'time'])['place'].apply(Most_Common)
+#s['distanceTraveled'] = gpsdata.groupby( by= ['userId', pd.Grouper(key='time', freq='H')])['latitude','longitude'].\
+#    apply(get_total_harversine_distance_traveled)
+#s['distanceTraveled'].fillna(0, inplace=True)
+
+s['locationVariance'] = gpsdata.groupby(['userId','time'])['longitude'].std()\
+                        + gpsdata.groupby(['userId','time'])['latitude'].std()
+s['locationVariance'].fillna(0,inplace=True)
+#calculo la distancia total recorrida por el usuario en una hora
 
 # prepare charge data
 chargedata = pd.read_csv('processing/phonecharge.csv')
@@ -203,20 +204,11 @@ conversationData = pd.read_csv('processing/conversation.csv')
 conversationData['start_timestamp'] = pd.to_datetime(conversationData['start_timestamp'], unit='s').dt.floor('h')
 conversationData[' end_timestamp'] = pd.to_datetime(conversationData[' end_timestamp'], unit='s').dt.floor('h')
 
-#isInConversation, cantConversation
-s['isInConversation'] = False
-for index, t in conversationData.iterrows():
-    for date in pd.date_range(start=t['start_timestamp'], end=t[' end_timestamp'], freq='H'):
-        try:
-            s.loc[[(t['userId'], date)], 'isInConversation'] = True
-        except KeyError:
-            pass
-
-s['cantConversation'] = 0
+s['numberOfConversations'] = 0
 for index, t in conversationData.iterrows():
     if t['start_timestamp'] == t[' end_timestamp']:
         try:
-            s.loc[[(t['userId'], t['start_timestamp'])], 'cantConversation'] += 1
+            s.loc[[(t['userId'], t['start_timestamp'])], 'numberOfConversations'] += 1
         except KeyError:
             pass
     else:
@@ -229,7 +221,7 @@ for index, t in conversationData.iterrows():
 
 #sns.lmplot('dayofweek', 'hourofday', data=s, fit_reg=False)
 
-#sns.countplot(x='cantConversation', data=s)
+#sns.countplot(x='numberOfConversations', data=s)
 '''
 #cargo los datos de deadlines
 deadlines = pd.read_csv('processing/deadlines.csv').iloc[:, 0:72]
@@ -314,41 +306,28 @@ wifidataIn['location'] = integer_encoded
 #s['wifiMajor'] = 0.0
 #s['wifiMajor'] = wifidataIn.groupby(['userId', 'time'])['location'].apply(Most_Common)
 #s.loc[s['wifiMajor'].isna()] = 0
+wifidataIn.reset_index(inplace=True, drop=True)
 
-wifidataIn.drop_duplicates(['time', 'location', 'userId'], inplace=True)
-s['wifiChanges'] = wifidataIn.groupby(['userId', 'time'])['location'].count()
+
+def funct(x):
+    changes=1
+    last = x.iloc[0]
+    for v in x:
+        if v != last:
+            changes += 1
+        last = v
+    return changes
+s['wifiChanges'] = wifidataIn.groupby(['userId', 'time'])['location'].apply(funct)
 s.loc[s['wifiChanges'].isna(), 'wifiChanges'] = 0
+
 #a = wifidataIn.groupby(['userId', 'time'])['location']
 #wifidataNear = wifidata.loc[wifidata['location'].str.startswith('near')]
 
-s.to_pickle('sedentarismwithoutdummies')
+s.to_pickle('sedentarismdata.pkl')
 
-#getting dummies
-numeric_cols = ['cantConversation', 'hourofday', 'wifiChanges',
-                'stationaryCount', 'walkingCount', 'runningCount', 'silenceCount', 'voiceCount', 'noiseCount',
-                'unknownAudioCount', 'slevel', 'pastminutes', 'remainingminutes']
-
-for col in numeric_cols:
-    s[col] = s[col].astype('float')
-
-categorical_cols = ['partofday', 'dayofweek', 'activitymajor']
-
-for col in categorical_cols:
-    s[col] = s[col].astype('category')
-
-dummies = pd.get_dummies(s.select_dtypes(include='category'))
-s.drop(['audiomajor','hourofday'] + categorical_cols, inplace=True, axis=1)
-swithdummies = pd.concat([s, dummies], axis=1, sort=False)
-
-swithdummies.to_pickle('sedentarismunshifted.pkl')
-#swithdummies['slevel'] = shift_hours(swithdummies)
-'''
-swithdummies.loc[swithdummies['beforeNextDeadline'] > 0, 'beforeNextDeadline'] = \
-    np.log(swithdummies.loc[swithdummies['beforeNextDeadline'] > 0, 'beforeNextDeadline'])
-swithdummies.loc[swithdummies['afterLastDeadline'] > 0, 'afterLastDeadline'] = \
-    np.log(swithdummies.loc[swithdummies['afterLastDeadline'] > 0, 'afterLastDeadline'])
-'''
 #swithdummies.to_pickle('sedentarism.pkl')
 #checkpoint
 #s.to_csv('processing/sedentaryBehaviour.csv')
 #s.to_pickle('sedentarism.pkl')
+
+
