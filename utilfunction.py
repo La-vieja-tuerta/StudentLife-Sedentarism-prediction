@@ -14,10 +14,12 @@ from keras.models import Sequential
 from keras.layers import Dense, BatchNormalization,Activation
 from keras.wrappers.scikit_learn import KerasClassifier
 from haversine import haversine
-
+from keras import backend as K
+K.tensorflow_backend._get_available_gpus()
 from sklearn.metrics import confusion_matrix
-from numpy.random import seed
-seed(7)
+import numpy
+numpy.random.seed(7)
+
 
 
 def createSensingTable(path):
@@ -55,14 +57,14 @@ def makeSedentaryClasses(df):
     dfcopy['sclass'] = ''
     dfcopy.loc[df['slevel'] >= 1.5, 'sclass'] = 0.0  # 'sedentary'
     dfcopy.loc[df['slevel'] < 1.5, 'sclass'] = 1.0  # 'not sedentary'
-    dfcopy['actualClass'] = dfcopy['sclass']
+    #dfcopy['actualClass'] = dfcopy['sclass']
     dfcopy.drop(['slevel'], inplace=True, axis=1)
     return dfcopy
 
-def get_X_y_classification(df, withActualClass):
+def get_X_y_classification(df, withActualClass=True):
     dfcopy = df.copy()
-    if not withActualClass:
-        dfcopy.drop(['actualClass'], inplace=True, axis=1)
+    #if not withActualClass:
+    #    dfcopy.drop(['actualClass'], inplace=True, axis=1)
     features = [col for col in dfcopy.columns if 'sclass' != col]
     return dfcopy[features].reset_index(drop=True), dfcopy['sclass'].reset_index(drop=True)
 
@@ -73,7 +75,7 @@ def per_user_regression(df, model):
     mse = []
     for userid in df.index.get_level_values(0).drop_duplicates():
         X, y = get_X_y_regression(get_user_data(dfcopy, userid))
-        kfold = StratifiedKFold(n_splits=10, random_state=seed)
+        kfold = StratifiedKFold(n_splits=10)
         results = cross_val_score(model, X, y, cv=kfold, scoring='neg_mean_squared_error')
         mse.append(-results.mean())
         if userid % 10 == 0:
@@ -100,28 +102,27 @@ def live_one_out_regression(df, model):
     return mse
 
 
-def per_user_classification(df, model, withActualClass):
+def per_user_classification(df, model):
     print('per_user_classification')
     dfcopy = df.copy()
     scoring = ['f1_weighted']
     f1 = []
-    kfold = StratifiedKFold(n_splits=10, random_state=seed)
+    kfold = StratifiedKFold(n_splits=10)
     for userid in df.index.get_level_values(0).drop_duplicates():
-        X, y = get_X_y_classification(get_user_data(dfcopy, userid), withActualClass)
+        X, y = get_X_y_classification(get_user_data(dfcopy, userid))
         results = cross_validate(model, X, y, cv=kfold, scoring=scoring)
         f1.append(results['test_f1_weighted'].mean())
-        if userid % 10 == 0:
-            print('modelos sobre usuario ', userid, ' finalizado.')
+        print('modelos sobre usuario ', userid, ' finalizado.')
     return f1
 
-def live_one_out_classification(df, model, withActualClass):
+def live_one_out_classification(df, model):
     dfcopy = df.copy()
     print('live_one_out_classification')
     i = 0
     f1 = []
     logo = LeaveOneGroupOut()
     groups = df.index.get_level_values(0)
-    X, y = get_X_y_classification(dfcopy, withActualClass)
+    X, y = get_X_y_classification(dfcopy)
     for train_index, test_index in logo.split(X, y, groups):
         X_train, X_test = X.iloc[train_index], X.iloc[test_index]
         y_train, y_test = y.iloc[train_index], y.iloc[test_index]
@@ -133,54 +134,25 @@ def live_one_out_classification(df, model, withActualClass):
         i += 1
     return f1
 
-def live_one_out_classificationNN(df, withActualClass):
-    dfcopy = df.copy()
-    print('live_one_out_classification')
-    i = 0
-    precision = []
-    recall = []
-    logo = LeaveOneGroupOut()
-    groups = df.index.get_level_values(0)
-    X, y = get_X_y_classification(dfcopy, withActualClass)
-    y = to_categorical(y)
-    for train_index, test_index in logo.split(X, y, groups):
-        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
-        y_train, y_test = y[train_index], y[test_index]
-        model = create_model(KerasClassifier(build_fn=baseline_model, input_dim=X.shape[1],
-                                             epochs=10, batch_size=256, verbose=0,
-                                             validation_data=(X_test, y_test)))
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-        y_test = np.argmax(y_test, axis=1)
-        precision.append(precision_score(y_test, y_pred, average='weighted'))
-        recall.append(recall_score(y_test, y_pred, average='weighted'))
-        if i % 10 == 0:
-            print('modelos sobre usuario ', i, ' finalizado.')
-        i += 1
-    return precision, recall
 
-
-def shift_hours(df, n, modelType):
+def shift_hours(df, n, columns=None):
     print('Shifting ', n, 'hours.')
     dfcopy = df.copy().sort_index()
+    if columns is None:
+        columns=df.columns
     for ind, row in dfcopy.iterrows():
         try:
-            if modelType == 'regression':
-                dfcopy.at[(ind[0], ind[1]),'slevel'] = dfcopy.at[(ind[0], ind[1] + pd.DateOffset(hours=n)), 'slevel']
-            elif modelType == 'classification':
-                dfcopy.at[(ind[0], ind[1]),'sclass'] = dfcopy.at[(ind[0], ind[1] + pd.DateOffset(hours=n)), 'sclass']
+            dfcopy.loc[(ind[0], ind[1]), columns] = dfcopy.loc[(ind[0], ind[1] + pd.DateOffset(hours=n)), columns]
         except KeyError:
-            if modelType == 'regression':
-                dfcopy.at[(ind[0], ind[1]), 'slevel'] = np.nan
-            elif modelType == 'classification':
-                dfcopy.at[(ind[0], ind[1]), 'sclass'] = np.nan
+            dfcopy.loc[(ind[0], ind[1]), columns] = np.nan
     print(dfcopy.isna().sum())
     dfcopy.dropna(inplace=True)
     return dfcopy
 
 def create_model(clf):
-    numeric_cols = ['cantConversation', 'wifiChanges',
+    numeric_cols = ['numberOfConversations', 'wifiChanges',
                     'silenceLevel', 'voiceLevel', 'noiseLevel',
+                    'hourSine','hourCosine',
                     'remainingminutes', 'pastminutes',
                     'distanceTraveled', 'locationVariance']
     transformer = ColumnTransformer([('scale', MinMaxScaler(), numeric_cols)],
@@ -199,7 +171,7 @@ def METcalculation(df, metValues=(1.3,5,8.3)):
 
 def makeDummies(df):
     dfcopy = df.copy()
-    categorical_cols = ['partofday', 'dayofweek', 'activitymajor']
+    categorical_cols = ['dayofweek', 'activitymajor']
     for col in categorical_cols:
         dfcopy[col] = dfcopy[col].astype('category')
     for col in set(df.columns) - set(categorical_cols):
@@ -210,7 +182,7 @@ def makeDummies(df):
 
 def baseline_model():
     estimator = Sequential([
-    Dense(256,input_dim=31,kernel_initializer='uniform', kernel_regularizer='l2',use_bias=False),
+    Dense(256,input_dim=28,kernel_initializer='uniform', kernel_regularizer='l2',use_bias=False),
     BatchNormalization(),
     Activation('relu'),
     Dense(128, kernel_initializer='uniform', kernel_regularizer='l2',use_bias=False),
@@ -244,4 +216,6 @@ def get_total_harversine_distance_traveled(x):
 
 def delete_sleep_hours(df):
     dfcopy = df.copy()
-    return dfcopy.loc[(dfcopy['slevel'] >= 1.5) | (dfcopy['partofday'] != 'night')]
+    return dfcopy.loc[(dfcopy['slevel'] >= 1.5) |
+                      ((dfcopy.index.get_level_values(1).hour<22) &
+                       (dfcopy.index.get_level_values(1).hour>5))]

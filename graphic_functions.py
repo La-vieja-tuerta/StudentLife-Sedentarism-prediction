@@ -4,7 +4,7 @@ import numpy as np
 from utilfunction import get_user_data
 import pandas as pd
 
-def show_user_activity(df, user, mindate, maxdate):
+def show_user_activity(df, user, mindate, maxdate, title=''):
     data = get_user_data(df, user)
     data = data.loc[(data.index.get_level_values(1) >= mindate) &
                     (data.index.get_level_values(1) < maxdate)]
@@ -38,9 +38,9 @@ def show_user_activity(df, user, mindate, maxdate):
     ax.yaxis.set_major_locator(plt.MultipleLocator(0.1))
     fig.autofmt_xdate()
     ax.grid(True)
-    ax.set_ylabel('Cumulative activity percentage')
+    ax.set_ylabel('Cumulative activity type (%)')
     ax.set_xlabel('Time')
-    ax.set_title(' One week activity')
+    ax.set_title(title)
     ax.legend(loc='upper right')
     plt.show()
     # https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior

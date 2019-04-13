@@ -90,12 +90,10 @@ s.fillna(0, inplace=True)
 
 # sedentary mean
 # hourofday
-s['hourofday'] = s.index.get_level_values('time').hour
 
-s['partofday'] = 'night'
-s.loc[(s['hourofday'] >= 5) & (s['hourofday'] < 12), 'partofday'] = 'morning'
-s.loc[(s['hourofday'] >= 12) & (s['hourofday'] < 17), 'partofday'] = 'afternoon'
-s.loc[(s['hourofday'] >= 17) & (s['hourofday'] < 21), 'partofday'] = 'evening'
+hours = s.index.get_level_values('time').hour
+s['hourSine'] = np.sin(2 * np.pi * hours/23.0)
+s['hourCosine'] = np.cos(2 * np.pi * hours/23.0)
 
 # dayofweek
 #s.loc[s.index.get_level_values('time').dayofweek == 0, 'dayofweek'] = 'saturday'
@@ -147,9 +145,9 @@ gpsdata['time'] = gpsdata['time'].dt.floor('h')
 
 
 #s['place'] = gpsdata.groupby(['userId', 'time'])['place'].apply(Most_Common)
-s['distanceTraveled'] = gpsdata.groupby( by= ['userId', pd.Grouper(key='time', freq='H')])['latitude','longitude'].\
-    apply(get_total_harversine_distance_traveled)
-s['distanceTraveled'].fillna(0, inplace=True)
+#s['distanceTraveled'] = gpsdata.groupby( by= ['userId', pd.Grouper(key='time', freq='H')])['latitude','longitude'].\
+#    apply(get_total_harversine_distance_traveled)
+#s['distanceTraveled'].fillna(0, inplace=True)
 
 s['locationVariance'] = gpsdata.groupby(['userId','time'])['longitude'].std()\
                         + gpsdata.groupby(['userId','time'])['latitude'].std()
@@ -206,11 +204,11 @@ conversationData = pd.read_csv('processing/conversation.csv')
 conversationData['start_timestamp'] = pd.to_datetime(conversationData['start_timestamp'], unit='s').dt.floor('h')
 conversationData[' end_timestamp'] = pd.to_datetime(conversationData[' end_timestamp'], unit='s').dt.floor('h')
 
-s['cantConversation'] = 0
+s['numberOfConversations'] = 0
 for index, t in conversationData.iterrows():
     if t['start_timestamp'] == t[' end_timestamp']:
         try:
-            s.loc[[(t['userId'], t['start_timestamp'])], 'cantConversation'] += 1
+            s.loc[[(t['userId'], t['start_timestamp'])], 'numberOfConversations'] += 1
         except KeyError:
             pass
     else:
@@ -223,7 +221,7 @@ for index, t in conversationData.iterrows():
 
 #sns.lmplot('dayofweek', 'hourofday', data=s, fit_reg=False)
 
-#sns.countplot(x='cantConversation', data=s)
+#sns.countplot(x='numberOfConversations', data=s)
 '''
 #cargo los datos de deadlines
 deadlines = pd.read_csv('processing/deadlines.csv').iloc[:, 0:72]
@@ -326,6 +324,7 @@ s.loc[s['wifiChanges'].isna(), 'wifiChanges'] = 0
 #wifidataNear = wifidata.loc[wifidata['location'].str.startswith('near')]
 
 s.to_pickle('sedentarismdata.pkl')
+
 #swithdummies.to_pickle('sedentarism.pkl')
 #checkpoint
 #s.to_csv('processing/sedentaryBehaviour.csv')

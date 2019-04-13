@@ -4,11 +4,16 @@ from utilfunction import *
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import LabelEncoder
+from scipy.stats.stats import pearsonr
+import math
 #sns.set()
 #sns.set_style("ticks")
 #sns.despine()
 df = pd.read_pickle('sedentarismdata.pkl')
+df = delete_user(df,52)
 df = METcalculation(df)
+#df = delete_sleep_hours(df)
+
 df['slevel'] = df['slevel'].astype('float')
 
 def get_hour_labels():
@@ -38,7 +43,7 @@ def show_graph(data, metric, user=-1):
         userdata = userdata.std()
         userdata = userdata.reset_index()
         userdata = userdata.pivot(index='dayofweek', values='slevel', columns='hourofday')
-        sns.heatmap(userdata, vmin=0, vmax=1, cmap='autumn_r')
+        sns.heatmap(userdata, vmin=0, cmap='autumn_r')
     plt.title('{0} activity of user {1}'.format(metric, user))
     plt.ylabel('Day of week')
     plt.xlabel('Hour of day')
@@ -47,17 +52,44 @@ def show_graph(data, metric, user=-1):
 
     plt.show()
 
-show_graph(df,'Mean', 39)
-show_graph(df,  'Standard Deviation', 39)
-
-
-
 
 show_graph(df,'Mean')
-show_graph(df, 'Stand   ard Deviation')
+show_graph(df, 'Standard Deviation')
+
+show_graph(df,'Mean', 45)
+show_graph(df,  'Standard Deviation', 45)
+
+show_graph(df,'Mean', 25)
+show_graph(df,  'Standard Deviation', 25)
+
+
+
 for u in df.index.get_level_values(0).drop_duplicates():
     show_graph(df,'Mean', u)
     show_graph(df, 'Standard Deviation', u)
+
+corrs = []
+for u in df.index.get_level_values(0).drop_duplicates():
+    fuser = get_user_data(df, u)
+    fuser = fuser.groupby(['dayofweek', 'hourofday'])['slevel'].agg(['mean','std']).dropna()
+    corr = pearsonr(fuser['mean'],fuser['std'])[0]
+    if not math.isnan(corr):
+        corrs.append(corr)
+
+corrs = []
+for u in df.index.get_level_values(0).drop_duplicates():
+    fuser = get_user_data(df, u)
+    met = float(fuser.groupby(['dayofweek', 'hourofday'])['slevel'].agg(['mean']).dropna().mean())
+    corrs.append({'user': u,'metValue' : met})
+
+ord = sorted(corrs, key=lambda k: k['metValue'])
+or
+#np.mean(corrs)
+#0.8688055526065076
+#np.std(corrs)
+#0.052758920253513308
+
+print('la correlacion de {0} es {1}'.format(44, corrs[44]))
 
 """
 user = get_user_data(df, 41)

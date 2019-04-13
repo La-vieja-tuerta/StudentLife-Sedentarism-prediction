@@ -6,9 +6,7 @@ import pandas as pd
 import numpy as np
 from utilfunction import *
 from imblearn.over_sampling import SMOTE
-from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report
 from sklearn.linear_model import LogisticRegression
 from sklearn.dummy import DummyClassifier
@@ -18,16 +16,16 @@ from keras.layers import Dense, Dropout, BatchNormalization, Activation
 df = pd.read_pickle('sedentarismdata.pkl')
 df = delete_user(df,52)
 df = METcalculation(df)
-df = delete_sleep_hours(df)
+#df = delete_sleep_hours(df)
 df = makeSedentaryClasses(df)
 df = makeDummies(df)
 df = shift_hours(df,1, 'classification')
 df.drop(['hourofday'], axis=1, inplace=True)
-
+df = get_user_data(df,10)
 
 def get_model():
     estimator = Sequential([
-        Dense(256,input_dim=31,kernel_initializer='uniform', kernel_regularizer='l2',use_bias=False),
+        Dense(256,input_dim=28,kernel_initializer='uniform', kernel_regularizer='l2',use_bias=False),
         BatchNormalization(),
         Activation('relu'),
         Dense(128, kernel_initializer='uniform', kernel_regularizer='l2',use_bias=False),
@@ -77,7 +75,7 @@ print(confusion_matrix(y_test, y_pred))
 print(classification_report(y_test, y_pred))
 
 print('DNN\n')
-clf = KerasClassifier(get_model,epochs=50, batch_size=512, verbose=2, validation_data=[X_test,y_test])
+clf = KerasClassifier(get_model,epochs=20, batch_size=32, verbose=2, validation_data=(X_test,y_test))
 modelnn = create_model(clf)
 modelnn.fit(X_train, y_train)
 y_pred = modelnn.predict(X_test)

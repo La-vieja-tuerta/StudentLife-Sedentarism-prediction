@@ -21,3 +21,4 @@ plt.grid(True)
 xlabels = df.index.get_level_values(0).drop_duplicates()
 plt.xticks(users, xlabels, rotation='vertical')
 plt.show()
+
